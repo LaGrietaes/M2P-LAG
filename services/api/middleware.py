@@ -44,6 +44,9 @@ class AuthMiddleware(BaseHTTPMiddleware):
         if auth_header.startswith("Bearer "):
             token = auth_header[7:]
 
+        # Extract guest token (spec §3 — one-time free unlimited download)
+        request.state.guest_token = request.headers.get("X-M2P-Guest-Token")
+
         # Validate token
         try:
             session = await auth_service.validate_token(token)

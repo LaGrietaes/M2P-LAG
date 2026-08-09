@@ -118,14 +118,16 @@ async def inspect_media(request: InspectRequest) -> InspectResponse:
 async def extract_clip(request: ExtractRequest, req: Request) -> ExtractResponse:
     """Extract a media segment (§08, §10)."""
     session = getattr(req.state, "session", None)
-    role = session.role if session else "guest"
+    if session is None:
+        from services.auth_service import AuthService as _AuthService
+        session = _AuthService()._guest_session()
 
     log.info(
         "Extract requested: url=%s, start=%.1f, end=%.1f, role=%s",
         request.url,
         request.start,
         request.end,
-        role,
+        session.role,
     )
 
     try:
@@ -133,11 +135,12 @@ async def extract_clip(request: ExtractRequest, req: Request) -> ExtractResponse
             url=request.url,
             start=request.start,
             end=request.end,
-            role=role,
+            session=session,
         )
     except ExtractionError as exc:
         log.warning("Extraction failed: %s", exc)
-        raise HTTPException(status_code=422, detail=str(exc))
+        status = 402 if "Insufficient" in str(exc) else 422
+        raise HTTPException(status_code=status, detail=str(exc))
     except Exception as exc:
         log.error("Unexpected extraction error: %s", exc)
         raise HTTPException(
@@ -258,26 +261,37 @@ async def get_history(request: Request):
 
 @app.post("/api/v1/jobs/download")
 async def download_source(request: InspectRequest, req: Request):
-    """Download source media for registered users (§02, §08)."""
-    session = getattr(req.state, "session", None)
-    if not session or session.role == "guest":
-        raise HTTPException(
-            status_code=403,
-            detail="Source downloads are only available to registered users.",
-        )
+    """Download full source media (§02, §08, spec §3).
 
-    log.info("Source download requested: url=%s, user=%s", request.url, session.user_id)
+    Registered users: unlimited, B1T\$-gated. Guests: one free unlimited
+    download per guest_token, then rejected.
+    """
+    session = getattr(req.state, "session", None)
+    if session is None:
+        from services.auth_service import AuthService as _AuthService
+        session = _AuthService()._guest_session()
+
+    guest_token = getattr(req.state, "guest_token", None)
+
+    log.info(
+        "Source download requested: url=%s, user=%s, role=%s",
+        request.url,
+        session.user_id,
+        session.role,
+    )
 
     try:
-        file_id = extraction_service.extract_clip(
+        file_id = extraction_service.extract_source(
             url=request.url,
-            start=0,
-            end=0,
-            role=session.role,
+            session=session,
+            guest_token=guest_token,
         )
     except ExtractionError as exc:
         log.warning("Source download failed: %s", exc)
-        raise HTTPException(status_code=422, detail=str(exc))
+        status = 403 if "already used" in str(exc) or "registration" in str(exc) else 422
+        if "Insufficient" in str(exc):
+            status = 402
+        raise HTTPException(status_code=status, detail=str(exc))
     except Exception as exc:
         log.error("Unexpected download error: %s", exc)
         raise HTTPException(

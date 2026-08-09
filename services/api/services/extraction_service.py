@@ -3,15 +3,14 @@
 Pipeline (§09):
   URL → Metadata → Download source → FFmpeg extract → Deliver → Cleanup
 
-Guest enforcement (§10):
-  Backend rejects extraction > GUEST_MAX_CLIP_SECONDS for guest users.
-  Never trust the frontend.
+Quota model (spec §3):
+  - Guests: free 20-second clip extraction (GUEST_MAX_CLIP_SECONDS), unchanged.
+    Additionally, one free unlimited full-source download per guest_token via
+    GuestService, standard quality only.
+  - Registered users: no duration/size cap. Gated by B1T$ balance via
+    CreditService — InsufficientCreditsError propagates as ExtractionError.
 """
 
-import os
-import time
-import uuid
-import shutil
 import logging
 import subprocess
 from pathlib import Path
@@ -20,7 +19,8 @@ import yt_dlp
 from config import settings
 from security.url_guard import validate_url
 from services.storage_service import StorageService
-from models import InspectResponse
+from services.credit_service import CreditService, InsufficientCreditsError
+from services.guest_service import GuestService
 
 log = logging.getLogger("m2p.extraction")
 
@@ -30,16 +30,12 @@ class ExtractionError(Exception):
 
 
 class ExtractionService:
-    """Handles media download and FFmpeg segment extraction.
-
-    For guest users (§10):
-    - Maximum clip duration is GUEST_MAX_CLIP_SECONDS (default 20s)
-    - Source is deleted immediately after extraction
-    - Output is deleted after TTL
-    """
+    """Handles media download and FFmpeg segment extraction."""
 
     def __init__(self):
         self.storage = StorageService()
+        self.credits = CreditService()
+        self.guests = GuestService()
         self.ytdlp_path = settings.YTDLP_PATH
         self.ffmpeg_path = settings.FFMPEG_PATH
 
@@ -48,7 +44,8 @@ class ExtractionService:
         url: str,
         start: float,
         end: float,
-        role: str = "guest",
+        session,
+        operation: str = "clip",
     ) -> str:
         """Extract a media segment and return the output file ID.
 
@@ -56,48 +53,44 @@ class ExtractionService:
             url: Media URL to extract from.
             start: Start time in seconds.
             end: End time in seconds.
-            role: User role ("guest" or "user").
-
-        Returns:
-            File ID (UUID) for downloading the extracted clip.
+            session: auth_service.Session for the requester.
+            operation: credit operation type ("clip", "transcript", "hevc_encode").
 
         Raises:
-            ExtractionError: if validation fails or extraction errors.
+            ExtractionError: if validation, quota, or extraction fails.
         """
-        # ── 1. SSRF validation (§19) ──────────────────────────────────────
         error = validate_url(url, allow_private=settings.ALLOW_PRIVATE_ADDRESSES)
         if error:
             raise ExtractionError(error)
 
-        # ── 2. Guest 20-second enforcement (§10) ──────────────────────────
         duration = end - start
         if duration <= 0:
             raise ExtractionError(
                 "Invalid segment: end time must be after start time."
             )
 
-        if role == "guest":
+        if session.role == "guest":
             max_seconds = settings.GUEST_MAX_CLIP_SECONDS
             if duration > max_seconds:
                 raise ExtractionError(
                     f"Guest extraction limit is {max_seconds} seconds. "
                     f"Your selection is {duration:.1f} seconds."
                 )
+        else:
+            try:
+                self.credits.charge(session, operation, duration=duration)
+            except InsufficientCreditsError as exc:
+                raise ExtractionError(str(exc)) from exc
 
-        # ── 3. Generate file ID ───────────────────────────────────────────
-        file_id = uuid.uuid4().hex
-
-        # ── 4. Download source media (yt-dlp) ─────────────────────────────
+        file_id = self._new_file_id()
         source_path = self._download_source(url, file_id)
 
         try:
-            # ── 5. FFmpeg extraction (§09) ────────────────────────────────
             output_path = self.storage.get_clip_path(file_id, ext="mp4")
             self._ffmpeg_extract(source_path, output_path, start, end)
 
-            # ── 6. Enforce file size limit (§17) ──────────────────────────
             file_size = self.storage.get_file_size(output_path)
-            if role == "guest" and file_size > settings.GUEST_MAX_FILE_SIZE:
+            if session.role == "guest" and file_size > settings.GUEST_MAX_FILE_SIZE:
                 self.storage.delete_file(output_path)
                 raise ExtractionError(
                     f"Extracted file exceeds the {settings.GUEST_MAX_FILE_SIZE} byte "
@@ -105,16 +98,76 @@ class ExtractionService:
                 )
 
             log.info(
-                "Extraction complete: file_id=%s, duration=%.1fs, size=%d bytes",
+                "Extraction complete: file_id=%s, duration=%.1fs, size=%d bytes, role=%s",
                 file_id,
                 duration,
                 file_size,
+                session.role,
             )
             return file_id
 
         finally:
-            # ── 7. Delete source immediately (§09, §10) ───────────────────
             self.storage.delete_file(source_path)
+
+    def extract_source(self, url: str, session, guest_token: str | None = None) -> str:
+        """Download the full source (no clip trimming) for registered users, or
+        for a guest using their one-time free unlimited download (spec §3).
+
+        Raises:
+            ExtractionError: if validation, quota, or download fails.
+        """
+        error = validate_url(url, allow_private=settings.ALLOW_PRIVATE_ADDRESSES)
+        if error:
+            raise ExtractionError(error)
+
+        is_guest_free_download = False
+        if session.role == "guest":
+            if not guest_token:
+                raise ExtractionError(
+                    "Source downloads require a guest token or registration."
+                )
+            if self.guests.has_used_free_download(guest_token):
+                raise ExtractionError(
+                    "Free download already used. Register or buy B1T$ for more "
+                    "downloads."
+                )
+            is_guest_free_download = True
+
+        file_id = self._new_file_id()
+        source_path = self._download_source(url, file_id)
+
+        try:
+            file_size = self.storage.get_file_size(Path(source_path))
+
+            if session.role != "guest":
+                try:
+                    self.credits.charge(session, "full_download", file_size=file_size)
+                except InsufficientCreditsError as exc:
+                    self.storage.delete_file(Path(source_path))
+                    raise ExtractionError(str(exc)) from exc
+
+            output_path = self.storage.get_clip_path(file_id, ext="mp4")
+            Path(source_path).rename(output_path)
+
+            if is_guest_free_download:
+                self.guests.mark_free_download_used(guest_token)
+
+            log.info(
+                "Source download complete: file_id=%s, size=%d bytes, role=%s",
+                file_id,
+                file_size,
+                session.role,
+            )
+            return file_id
+        except ExtractionError:
+            raise
+        finally:
+            self.storage.delete_file(Path(source_path))
+
+    def _new_file_id(self) -> str:
+        import uuid
+
+        return uuid.uuid4().hex
 
     def _download_source(self, url: str, file_id: str) -> str:
         """Download source media using yt-dlp to temporary storage."""
