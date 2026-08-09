@@ -5,8 +5,12 @@ caps. This service computes cost, checks balance, and appends an append-only
 transaction record per user under {DATA_DIR}/credits/{user_id}.jsonl.
 
 The balance itself is reported by LAG-Bridge (session.b1t_balance) and is not
-mutated here — until LAG-Bridge is live, this is a best-effort session-scoped
-ledger (spec §3, §6).
+mutated here. Instead, charge() gates spending against
+(session.b1t_balance - sum of costs already logged for this user in the
+local ledger), so repeated requests within the ledger's lifetime cannot
+exceed the reported balance. Until LAG-Bridge is live and authoritative
+across devices, this remains a best-effort, local-ledger-scoped gate
+(spec §3, §6).
 """
 
 import json
@@ -81,8 +85,9 @@ class CreditService:
         """
         cost = self.cost_for(operation, duration=duration, file_size=file_size)
 
-        if cost > session.b1t_balance:
-            raise InsufficientCreditsError(required=cost, available=session.b1t_balance)
+        available = session.b1t_balance - self._spent_so_far(session.user_id)
+        if cost > available:
+            raise InsufficientCreditsError(required=cost, available=available)
 
         self._log_transaction(session.user_id, operation, cost, duration, file_size)
         return cost
@@ -91,6 +96,29 @@ class CreditService:
         if duration <= 0:
             return 0
         return math.ceil(duration / _DURATION_UNIT_SECONDS)
+
+    def _spent_so_far(self, user_id: str) -> int:
+        """Sum the cost of every transaction already logged for this user.
+
+        This makes the local {DATA_DIR}/credits/{user_id}.jsonl ledger
+        self-consistent within its own lifetime: session.b1t_balance is
+        rebuilt fresh from the (currently-mocked) auth response on every
+        request, so without this, a user could repeat any affordable
+        operation indefinitely. This is not yet cross-device/LAG-Bridge
+        authoritative — see spec §3, §6 for that future-phase limitation.
+        """
+        log_path = self.credits_dir / f"{user_id}.jsonl"
+        if not log_path.exists():
+            return 0
+
+        spent = 0
+        with open(log_path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                spent += json.loads(line)["cost"]
+        return spent
 
     def _log_transaction(
         self, user_id: str, operation: str, cost: int, duration: float, file_size: int
