@@ -70,6 +70,20 @@ def _owner_key(session, guest_token: str | None) -> str:
     return f"user:{session.user_id}"
 
 
+def _session_from_request(req: Request):
+    """Return the session attached by AuthMiddleware.
+
+    AuthMiddleware unconditionally sets request.state.session for every
+    non-public path, so this fallback is defensive/unreachable in normal
+    operation — kept for safety and to avoid an AttributeError if a route
+    is ever exempted from the middleware.
+    """
+    session = getattr(req.state, "session", None)
+    if session is None:
+        session = AuthService()._guest_session()
+    return session
+
+
 @app.get("/health", response_model=HealthResponse)
 async def health() -> HealthResponse:
     """Liveness probe."""
@@ -123,10 +137,14 @@ async def inspect_media(request: InspectRequest) -> InspectResponse:
 @app.post("/api/v1/jobs/extract", response_model=ExtractResponse)
 async def extract_clip(request: ExtractRequest, req: Request) -> ExtractResponse:
     """Extract a media segment (§08, §10)."""
-    session = getattr(req.state, "session", None)
-    if session is None:
-        from services.auth_service import AuthService as _AuthService
-        session = _AuthService()._guest_session()
+    session = _session_from_request(req)
+    guest_token = getattr(req.state, "guest_token", None)
+
+    if session.role == "guest" and not guest_token:
+        raise HTTPException(
+            status_code=422,
+            detail="A guest token (X-M2P-Guest-Token header) is required to extract a clip.",
+        )
 
     log.info(
         "Extract requested: url=%s, start=%.1f, end=%.1f, role=%s",
@@ -160,7 +178,6 @@ async def extract_clip(request: ExtractRequest, req: Request) -> ExtractResponse
     matched_path = next(
         (p for p in clip_dir.iterdir() if p.stem.startswith(file_id)), None
     )
-    guest_token = getattr(req.state, "guest_token", None)
     _jobs[file_id] = {
         "id": file_id,
         "status": "ready",
@@ -194,10 +211,7 @@ async def download_file(file_id: str, req: Request):
     if not job or not job.get("path"):
         raise HTTPException(status_code=404, detail="File not found")
 
-    session = getattr(req.state, "session", None)
-    if session is None:
-        from services.auth_service import AuthService as _AuthService
-        session = _AuthService()._guest_session()
+    session = _session_from_request(req)
     guest_token = getattr(req.state, "guest_token", None)
 
     if job["owner"] != _owner_key(session, guest_token):
@@ -221,10 +235,7 @@ async def delete_file(file_id: str, req: Request):
     if not job or not job.get("path"):
         raise HTTPException(status_code=404, detail="File not found")
 
-    session = getattr(req.state, "session", None)
-    if session is None:
-        from services.auth_service import AuthService as _AuthService
-        session = _AuthService()._guest_session()
+    session = _session_from_request(req)
     guest_token = getattr(req.state, "guest_token", None)
 
     if job["owner"] != _owner_key(session, guest_token):
@@ -296,14 +307,10 @@ async def get_history(request: Request):
 async def download_source(request: InspectRequest, req: Request):
     """Download full source media (§02, §08, spec §3).
 
-    Registered users: unlimited, B1T\$-gated. Guests: one free unlimited
+    Registered users: unlimited, B1T$-gated. Guests: one free unlimited
     download per guest_token, then rejected.
     """
-    session = getattr(req.state, "session", None)
-    if session is None:
-        from services.auth_service import AuthService as _AuthService
-        session = _AuthService()._guest_session()
-
+    session = _session_from_request(req)
     guest_token = getattr(req.state, "guest_token", None)
 
     log.info(
