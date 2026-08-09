@@ -10,6 +10,8 @@
 
 import { useState, useEffect } from "react";
 
+export const isDevModeAvailable = import.meta.env.DEV;
+
 type DevMode = "guest" | "registered";
 
 export function DevModeToggle() {
