@@ -166,6 +166,7 @@ async def extract_clip(request: ExtractRequest, req: Request) -> ExtractResponse
             start=request.start,
             end=request.end,
             session=session,
+            format_id=request.format_id,
         )
     except ExtractionError as exc:
         log.warning("Extraction failed: %s", exc)
@@ -198,7 +199,12 @@ async def extract_clip(request: ExtractRequest, req: Request) -> ExtractResponse
         "path": str(matched_path) if matched_path else None,
     }
 
-    return ExtractResponse(file_id=file_id, status="ready")
+    return ExtractResponse(
+        file_id=file_id,
+        status="ready",
+        format=request.format,
+        expires_at=now + ttl,
+    )
 
 
 @app.get("/api/v1/jobs/{job_id}", response_model=JobResponse)
@@ -345,6 +351,7 @@ async def download_source(request: InspectRequest, req: Request):
             url=request.url,
             session=session,
             guest_token=guest_token,
+            format_id=request.format_id,
         )
     except ExtractionError as exc:
         log.warning("Source download failed: %s", exc)

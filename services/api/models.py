@@ -9,9 +9,16 @@ from typing import Optional
 
 
 class InspectRequest(BaseModel):
-    """Request body for POST /api/v1/media/inspect."""
+    """Request body for POST /api/v1/media/inspect and POST /api/v1/jobs/download.
+
+    format_id is only meaningful for the download endpoint (a format_id
+    chosen from a prior inspect response's formats[]); inspect ignores it.
+    """
 
     url: str = Field(..., min_length=1, description="Media URL to inspect")
+    format_id: Optional[str] = Field(
+        None, description="yt-dlp format_id to download (jobs/download only)"
+    )
 
 
 class FormatOption(BaseModel):
@@ -57,7 +64,12 @@ class ExtractRequest(BaseModel):
     url: str = Field(..., min_length=1, description="Media URL to extract from")
     start: float = Field(..., ge=0, description="Start time in seconds")
     end: float = Field(..., gt=0, description="End time in seconds")
-    format: str = Field("mp4", description="Output format (mp4, mp3, etc.)")
+    format: str = Field("mp4", description="Output container format (mp4, mp3, etc.)")
+    format_id: Optional[str] = Field(
+        None,
+        description="yt-dlp format_id chosen from a prior /media/inspect "
+        "response's formats[]; None keeps the default best-quality source.",
+    )
 
 
 class ExtractResponse(BaseModel):
@@ -66,6 +78,8 @@ class ExtractResponse(BaseModel):
     file_id: str
     status: str = "ready"
     message: Optional[str] = None
+    format: Optional[str] = None
+    expires_at: Optional[float] = None
 
 
 class JobStatus(str):

@@ -1,5 +1,6 @@
 import tempfile
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -11,9 +12,14 @@ from services.guest_service import GuestService
 class FakeExtractionService(ExtractionService):
     """Skips real yt-dlp/ffmpeg calls so we can test quota/credit logic only."""
 
-    def _download_source(self, url, file_id):
+    def __init__(self):
+        super().__init__()
+        self.last_format_id = "unset"
+
+    def _download_source(self, url, file_id, format_id=None):
         # extract_source() renames this path, so it must exist on disk (unlike
         # extract_clip(), which only ever passes it to the faked _ffmpeg_extract).
+        self.last_format_id = format_id
         fake = Path(tempfile.mkdtemp(prefix="m2p_fake_src_")) / "source.mp4"
         fake.write_bytes(b"")
         return str(fake)
@@ -78,6 +84,86 @@ class TestRegisteredUserUnlimitedDuration:
                 session=session,
                 operation="transcript",
             )
+
+
+class TestFormatIdPlumbing:
+    def test_extract_clip_passes_format_id_to_download(self, tmp_data_dir, monkeypatch):
+        svc = FakeExtractionService()
+        monkeypatch.setattr(svc.storage, "get_file_size", lambda p: 1024)
+        monkeypatch.setattr(svc.storage, "delete_file", lambda p: True)
+        session = make_session(balance=10)
+        svc.extract_clip(
+            url="https://example.com/v",
+            start=0,
+            end=10,
+            session=session,
+            format_id="137",
+        )
+        assert svc.last_format_id == "137"
+
+    def test_extract_clip_defaults_format_id_to_none(self, tmp_data_dir, monkeypatch):
+        svc = FakeExtractionService()
+        monkeypatch.setattr(svc.storage, "get_file_size", lambda p: 1024)
+        monkeypatch.setattr(svc.storage, "delete_file", lambda p: True)
+        session = make_session(balance=10)
+        svc.extract_clip(
+            url="https://example.com/v", start=0, end=10, session=session
+        )
+        assert svc.last_format_id is None
+
+    def test_extract_source_passes_format_id_to_download(
+        self, tmp_data_dir, monkeypatch
+    ):
+        svc = FakeExtractionService()
+        monkeypatch.setattr(svc.storage, "get_file_size", lambda p: 1024)
+        monkeypatch.setattr(svc.storage, "delete_file", lambda p: True)
+        session = make_session(balance=10)
+        svc.extract_source(
+            url="https://example.com/v",
+            session=session,
+            format_id="299",
+        )
+        assert svc.last_format_id == "299"
+
+    def test_download_source_builds_fallback_chain_when_format_id_given(
+        self, tmp_data_dir
+    ):
+        """Real _download_source (not the fake) should build a yt-dlp format
+        selector that tries the chosen format_id (paired with best audio),
+        then the bare format_id, then the existing best-quality default —
+        so a stale/unavailable format_id doesn't hard-fail the download."""
+        svc = ExtractionService()
+        mock_ydl_instance = MagicMock()
+        mock_ydl_instance.__enter__.return_value = mock_ydl_instance
+        captured_opts = {}
+
+        def fake_ydl_class(opts):
+            captured_opts.update(opts)
+            return mock_ydl_instance
+
+        with patch("services.extraction_service.yt_dlp.YoutubeDL", side_effect=fake_ydl_class):
+            with patch.object(Path, "exists", return_value=True):
+                svc._download_source("https://example.com/v", "abc123", format_id="299")
+
+        assert captured_opts["format"] == "299+bestaudio/299/bestvideo+bestaudio/best"
+
+    def test_download_source_uses_default_selector_when_no_format_id(
+        self, tmp_data_dir
+    ):
+        svc = ExtractionService()
+        mock_ydl_instance = MagicMock()
+        mock_ydl_instance.__enter__.return_value = mock_ydl_instance
+        captured_opts = {}
+
+        def fake_ydl_class(opts):
+            captured_opts.update(opts)
+            return mock_ydl_instance
+
+        with patch("services.extraction_service.yt_dlp.YoutubeDL", side_effect=fake_ydl_class):
+            with patch.object(Path, "exists", return_value=True):
+                svc._download_source("https://example.com/v", "abc123")
+
+        assert captured_opts["format"] == "bestvideo+bestaudio/best"
 
 
 class TestGuestFreeDownload:

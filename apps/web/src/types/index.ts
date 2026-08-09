@@ -2,6 +2,9 @@ import { z } from "zod";
 
 export const InspectRequestSchema = z.object({
   url: z.string().min(1, "URL is required"),
+  // Only meaningful when this schema is used for POST /jobs/download
+  // (full-source download); ignored by /media/inspect.
+  format_id: z.string().optional(),
 });
 
 export const FormatOptionSchema = z.object({
@@ -45,12 +48,17 @@ export const ExtractRequestSchema = z.object({
   start: z.number().min(0, "Start must be >= 0"),
   end: z.number().min(0, "End must be >= 0"),
   format: z.string().default("mp4"),
+  // yt-dlp format_id chosen from a prior InspectResponse.formats[] entry;
+  // omitted keeps the backend's default best-quality source selection.
+  format_id: z.string().optional(),
 });
 
 export const ExtractResponseSchema = z.object({
   file_id: z.string(),
   status: z.string(),
   message: z.string().optional().nullable(),
+  format: z.string().optional().nullable(),
+  expires_at: z.number().optional().nullable(),
 });
 
 export const JobResponseSchema = z.object({
@@ -130,4 +138,13 @@ export interface FormatSelection {
   resolution: string;
   audioPreset: AudioPreset;
   transcriptFormat: TranscriptFormat;
+  /**
+   * The concrete yt-dlp format_id to request from the source (from a
+   * FormatOption in InspectResponse.formats), or null to let the backend
+   * fall back to its default best-quality selection. This is what
+   * actually gets sent as ExtractRequest.format_id / InspectRequest
+   * (download).format_id — resolution/videoPreset above describe intent
+   * for the Standard-tab UI, formatId is the resolved concrete choice.
+   */
+  formatId: string | null;
 }

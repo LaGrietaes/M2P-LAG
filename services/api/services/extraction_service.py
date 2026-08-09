@@ -46,6 +46,7 @@ class ExtractionService:
         end: float,
         session,
         operation: str = "clip",
+        format_id: str | None = None,
     ) -> str:
         """Extract a media segment and return the output file ID.
 
@@ -55,6 +56,10 @@ class ExtractionService:
             end: End time in seconds.
             session: auth_service.Session for the requester.
             operation: credit operation type ("clip", "transcript", "hevc_encode").
+            format_id: yt-dlp format_id chosen from a prior /media/inspect
+                response (spec §2 — real source-derived formats, not a
+                simplified quality toggle). None keeps the existing
+                bestvideo+bestaudio/best default.
 
         Raises:
             ExtractionError: if validation, quota, or extraction fails.
@@ -83,7 +88,7 @@ class ExtractionService:
                 raise ExtractionError(str(exc)) from exc
 
         file_id = self._new_file_id()
-        source_path = self._download_source(url, file_id)
+        source_path = self._download_source(url, file_id, format_id=format_id)
 
         try:
             output_path = self.storage.get_clip_path(file_id, ext="mp4")
@@ -109,9 +114,20 @@ class ExtractionService:
         finally:
             self.storage.delete_file(source_path)
 
-    def extract_source(self, url: str, session, guest_token: str | None = None) -> str:
+    def extract_source(
+        self,
+        url: str,
+        session,
+        guest_token: str | None = None,
+        format_id: str | None = None,
+    ) -> str:
         """Download the full source (no clip trimming) for registered users, or
         for a guest using their one-time free unlimited download (spec §3).
+
+        Args:
+            format_id: yt-dlp format_id chosen from a prior /media/inspect
+                response. None keeps the existing bestvideo+bestaudio/best
+                default.
 
         Raises:
             ExtractionError: if validation, quota, or download fails.
@@ -134,7 +150,7 @@ class ExtractionService:
             is_guest_free_download = True
 
         file_id = self._new_file_id()
-        source_path = self._download_source(url, file_id)
+        source_path = self._download_source(url, file_id, format_id=format_id)
 
         try:
             file_size = self.storage.get_file_size(Path(source_path))
@@ -169,14 +185,34 @@ class ExtractionService:
 
         return uuid.uuid4().hex
 
-    def _download_source(self, url: str, file_id: str) -> str:
-        """Download source media using yt-dlp to temporary storage."""
+    def _download_source(
+        self, url: str, file_id: str, format_id: str | None = None
+    ) -> str:
+        """Download source media using yt-dlp to temporary storage.
+
+        format_id selects a specific format from a prior /media/inspect
+        response. A video-only format_id is paired with the best available
+        audio (yt-dlp merges them via ffmpeg), matching how format_id
+        already behaves when the source itself has separate video/audio
+        streams. Falls back to the existing best-quality default when no
+        format_id is given, or if yt-dlp can't resolve it (e.g. the
+        source's available formats changed between inspect and extract).
+        """
         source_path = self.storage.get_temp_path(file_id, ext="mp4")
+        # yt-dlp evaluates '/'-separated alternatives left to right, using
+        # the first one it can resolve — so a stale/unavailable format_id
+        # falls through to bestaudio pairing, then plain format_id, then the
+        # existing best-quality default, without a second Python-level call.
+        format_selector = (
+            f"{format_id}+bestaudio/{format_id}/bestvideo+bestaudio/best"
+            if format_id
+            else "bestvideo+bestaudio/best"
+        )
 
         ydl_opts = {
             "quiet": True,
             "no_warnings": True,
-            "format": "bestvideo+bestaudio/best",
+            "format": format_selector,
             "outtmpl": str(source_path),
             "noplaylist": True,
             "merge_output_format": "mp4",

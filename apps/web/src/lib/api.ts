@@ -10,6 +10,7 @@ import type {
   Session,
 } from "../types";
 import { getGuestToken, getAuthToken } from "./guestToken";
+import { isDevModeAvailable, getDevRole } from "./devMode";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8001";
 
@@ -20,6 +21,12 @@ function authHeaders(): Record<string, string> {
   const token = getAuthToken();
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
+  }
+  // Only ever sent from a dev build (import.meta.env.DEV); the backend
+  // ignores this header entirely unless it also has M2P_DEV_MODE=true, so
+  // this is inert in any real deployment either way (defense in depth).
+  if (isDevModeAvailable && getDevRole() === "registered") {
+    headers["X-M2P-Dev-Role"] = "user";
   }
   return headers;
 }
@@ -86,6 +93,21 @@ export async function getJob(jobId: string): Promise<JobResponse> {
 
 export function getFileUrl(fileId: string): string {
   return `${API_BASE}/api/v1/files/${fileId}`;
+}
+
+/**
+ * Fetch a delivered file as a Blob. A plain `<a href>` to getFileUrl()
+ * can't work for guests: the server requires the X-M2P-Guest-Token header
+ * to verify file ownership (spec §2 ownership check), and a browser
+ * navigation triggered by clicking an anchor never sends custom headers —
+ * only fetch()/XHR do. This goes through apiFetch() so the header is
+ * attached, then the caller turns the Blob into a download via a
+ * temporary object URL.
+ */
+export async function downloadFile(fileId: string): Promise<Blob> {
+  const response = await apiFetch(`/api/v1/files/${fileId}`);
+  if (!response.ok) return parseErrorOrThrow(response, "Failed to download file");
+  return response.blob();
 }
 
 export async function getHealth(): Promise<{ status: string }> {
