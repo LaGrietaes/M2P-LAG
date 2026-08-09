@@ -7,6 +7,7 @@ import type {
   PurchaseRequest,
   PurchaseResponse,
   QuotaResponse,
+  Session,
 } from "../types";
 import { getGuestToken, getAuthToken } from "./guestToken";
 
@@ -103,7 +104,7 @@ export async function getVersion(): Promise<{
   return response.json();
 }
 
-export async function getMe(): Promise<any> {
+export async function getMe(): Promise<Session> {
   const response = await apiFetch("/api/v1/me");
   if (!response.ok) throw new Error("Failed to get session");
   return response.json();

@@ -10,8 +10,6 @@
 
 import { useState, useEffect } from "react";
 
-export const isDevModeAvailable = import.meta.env.DEV;
-
 type DevMode = "guest" | "registered";
 
 export function DevModeToggle() {
@@ -51,16 +49,4 @@ export function DevModeToggle() {
       </div>
     </div>
   );
-}
-
-export function useDevMode() {
-  const [mode] = useState<DevMode>(() => {
-    return (localStorage.getItem("m2p-dev-mode") as DevMode) || "guest";
-  });
-
-  return {
-    isRegistered: mode === "registered",
-    isGuest: mode === "guest",
-    mode,
-  };
 }

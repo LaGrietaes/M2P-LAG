@@ -107,6 +107,18 @@ export const QuotaResponseSchema = z.object({
 
 export type QuotaResponse = z.infer<typeof QuotaResponseSchema>;
 
+export const SessionSchema = z.object({
+  user_id: z.string(),
+  role: z.string(),
+  provider: z.string(),
+  email: z.string().optional().nullable(),
+  name: z.string().optional().nullable(),
+  b1t_balance: z.number(),
+  quota: QuotaResponseSchema.optional().nullable(),
+});
+
+export type Session = z.infer<typeof SessionSchema>;
+
 export type ContentType = "video" | "audio" | "transcript";
 export type VideoPreset = "compatible" | "high_quality";
 export type AudioPreset = "mp3" | "original";
@@ -118,14 +130,4 @@ export interface FormatSelection {
   resolution: string;
   audioPreset: AudioPreset;
   transcriptFormat: TranscriptFormat;
-}
-
-export interface Session {
-  user_id: string;
-  role: string;
-  provider: string;
-  email?: string | null;
-  name?: string | null;
-  b1t_balance: number;
-  quota: Record<string, any>;
 }

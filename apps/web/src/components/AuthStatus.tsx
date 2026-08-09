@@ -25,14 +25,9 @@ export function AuthStatus() {
         const [me, quota] = await Promise.all([getMe(), getQuota()]);
         setSession({
           ...me,
-          quota: {
-            max_clip_seconds: quota.max_clip_seconds,
-            max_file_size: quota.max_file_size,
-            daily_jobs: quota.daily_jobs_remaining,
-            storage_quota: 0,
-          },
+          quota,
           b1t_balance: quota.b1t_balance,
-        } as Session);
+        });
       } catch {
         setSession(null);
       } finally {

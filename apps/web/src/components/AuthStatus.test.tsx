@@ -5,7 +5,12 @@ import * as api from '../lib/api'
 
 describe('AuthStatus register button', () => {
   beforeEach(() => {
-    vi.spyOn(api, 'getMe').mockResolvedValue({ role: 'guest' })
+    vi.spyOn(api, 'getMe').mockResolvedValue({
+      role: 'guest',
+      user_id: 'guest-user',
+      provider: 'guest',
+      b1t_balance: 0,
+    })
     vi.spyOn(api, 'getQuota').mockResolvedValue({
       role: 'guest',
       max_clip_seconds: 20,
