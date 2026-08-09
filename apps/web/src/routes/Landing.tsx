@@ -26,7 +26,7 @@ export default function Landing() {
     getQuota()
       .then(setQuota)
       .catch(() => setQuota(null));
-  }, [view === "result"]);
+  }, [view]);
 
   const extractMutation = useMutation({
     mutationFn: extractClip,
@@ -77,12 +77,16 @@ export default function Landing() {
     setView("source");
   };
 
-  const isGuest = !quota || quota.role === "guest";
-  const freeDownloadBadge = isGuest
-    ? quota?.free_download_used
-      ? "used"
-      : "available"
-    : null;
+  // Only claim a badge state once real quota data has arrived. While
+  // `quota` is null (not yet loaded, or the fetch failed) we don't know
+  // the user's role or free-download status, so render nothing rather
+  // than defaulting to "available".
+  const freeDownloadBadge =
+    quota && quota.role === "guest"
+      ? quota.free_download_used
+        ? "used"
+        : "available"
+      : null;
 
   return (
     <div className="min-h-screen bg-charcoal text-ink flex flex-col items-center px-4 py-12 hud-scanlines">
