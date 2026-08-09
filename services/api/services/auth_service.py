@@ -117,6 +117,24 @@ class AuthService:
             log.error("Auth validation error: %s", exc)
             return self._guest_session()
 
+    def dev_session(self) -> Session:
+        """Fake registered-user session for local dev/testing only.
+
+        Only ever constructed when config.settings.M2P_DEV_MODE is true and
+        the caller sent X-M2P-Dev-Role: user (see middleware.py) — this
+        method itself doesn't re-check the flag so it stays a pure fake-
+        session factory, consistent with _guest_session() below.
+        """
+        return Session(
+            user_id="dev-user",
+            role="user",
+            provider="dev",
+            email="dev@localhost",
+            name="Dev User",
+            b1t_balance=settings.M2P_DEV_USER_B1T_BALANCE,
+            quota=None,
+        )
+
     def _guest_session(self) -> Session:
         """Return a default guest session."""
         return Session(

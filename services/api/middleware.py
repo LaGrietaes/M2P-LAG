@@ -47,6 +47,16 @@ class AuthMiddleware(BaseHTTPMiddleware):
         # Extract guest token (spec §3 — one-time free unlimited download)
         request.state.guest_token = request.headers.get("X-M2P-Guest-Token")
 
+        # Dev-only registered-user bypass (M2P_DEV_MODE=true): lets the
+        # frontend's DevModeToggle exercise real registered-user code paths
+        # (no clip cap, real B1T$ balance/spend) without a live LAG-Bridge.
+        # Ignored entirely unless the env flag is set, so this is inert in
+        # any deployment that hasn't explicitly opted in.
+        dev_role = request.headers.get("X-M2P-Dev-Role")
+        if settings.M2P_DEV_MODE and dev_role == "user":
+            request.state.session = auth_service.dev_session()
+            return await call_next(request)
+
         # Validate token
         try:
             session = await auth_service.validate_token(token)

@@ -82,6 +82,19 @@ class Settings:
     ).lower() in ("1", "true", "yes")
     B1T_PACKAGE_TIERS: dict = {1: 100, 2: 500, 3: 1000}
 
+    # ── Dev-mode registered-user bypass (frontend DevModeToggle) ────────
+    # Dev/staging only: lets the frontend exercise real registered-user
+    # code paths (no clip cap, real B1T$ balance/spend) without a live
+    # LAG-Bridge. Never enable in production.
+    M2P_DEV_MODE: bool = os.getenv("M2P_DEV_MODE", "false").lower() in (
+        "1",
+        "true",
+        "yes",
+    )
+    M2P_DEV_USER_B1T_BALANCE: int = int(
+        os.getenv("M2P_DEV_USER_B1T_BALANCE", "1000")
+    )
+
     # ── Version ─────────────────────────────────────────────────────────
     VERSION: str = os.getenv("M2P_VERSION", "0.1.0")
 
