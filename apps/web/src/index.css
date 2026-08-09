@@ -1,0 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* M2P color scheme (§26): black/charcoal, white, red */
+:root {
+  --m2p-red: #a00000;
+  --m2p-red-dark: #700000;
+  --m2p-charcoal: #121212;
+  --m2p-charcoal-light: #bfbfbf;
+}
+
+/* Ensure dark mode is the default — M2P is a dark, technical tool */
+html {
+  color-scheme: dark;
+}

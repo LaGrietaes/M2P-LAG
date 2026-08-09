@@ -1,0 +1,16 @@
+{
+  "name": "M2P — Media Server 2 Peer",
+  "short_name": "M2P",
+  "description": "Media Server 2 Peer — the shortest path from media you found to the piece you need.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#a00000",
+  "icons": [
+    {
+      "src": "/m2p-logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

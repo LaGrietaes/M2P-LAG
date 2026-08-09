@@ -1,0 +1,57 @@
+# M2P — Media Server 2 Peer
+# Docker Compose for local development (§31, §K)
+#
+# Services:
+#   m2p-web   — nginx serving the React build
+#   m2p-api   — Python 3.13 FastAPI backend
+#   m2p-worker — media processing worker (stub in Phase 1)
+#
+# For production, use the existing LaGrieta nginx reverse proxy (§32).
+
+services:
+  m2p-web:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.web
+    ports:
+      - "5173:80"
+    depends_on:
+      - m2p-api
+    networks:
+      - m2p-network
+
+  m2p-api:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.api
+    ports:
+      - "8000:8000"
+    environment:
+      - M2P_CORS_ORIGINS=http://localhost:5173
+      - M2P_DATA_DIR=/data
+      - GUEST_MAX_CLIP_SECONDS=20
+      - MAX_CONCURRENT_DOWNLOADS=2
+      - MAX_CONCURRENT_EXTRACTIONS=2
+    volumes:
+      - m2p-data:/data
+    networks:
+      - m2p-network
+
+  m2p-worker:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.api
+    command: python -c "print('M2P worker stub — Phase 1')"
+    environment:
+      - M2P_DATA_DIR=/data
+    volumes:
+      - m2p-data:/data
+    networks:
+      - m2p-network
+
+networks:
+  m2p-network:
+    driver: bridge
+
+volumes:
+  m2p-data:
