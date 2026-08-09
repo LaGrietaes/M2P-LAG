@@ -5,9 +5,12 @@ export default {
     extend: {
       colors: {
         // M2P brand palette (§26): black/charcoal, white, red
-        red: '#a00000',
-        'red-dark': '#700000',
-        'red-glow': 'rgba(160, 0, 0, 0.35)',
+        // Namespaced as brand-red* so it doesn't collide with Tailwind's
+        // built-in red-50..950 scale (a flat `red:` key here would replace
+        // that entire scale, silently breaking every red-{shade} utility).
+        'brand-red': '#a00000',
+        'brand-red-dark': '#700000',
+        'brand-red-glow': 'rgba(160, 0, 0, 0.35)',
         charcoal: '#121212',
         'charcoal-light': '#bfbfbf',
         ink: '#e8e8e8',

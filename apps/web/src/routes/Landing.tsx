@@ -131,12 +131,12 @@ export default function Landing() {
               </p>
               <div className="space-y-2 font-mono text-xs">
                 <p>
-                  <span className="text-red-400 font-medium">GUEST:</span>{" "}
+                  <span className="text-brand-red font-medium">GUEST:</span>{" "}
                   20s clip extraction, always free. Plus one free unlimited
                   full download.
                 </p>
                 <p>
-                  <span className="text-red-400 font-medium">
+                  <span className="text-brand-red font-medium">
                     REGISTERED:
                   </span>{" "}
                   Unlimited extraction, gated by B1T$ balance.
@@ -162,7 +162,7 @@ export default function Landing() {
               freeDownloadBadge={freeDownloadBadge}
             />
             {downloadMutation.isError && (
-              <div className="p-3 text-sm text-red-300 bg-red-900/20 border border-red-800 rounded-lg">
+              <div className="p-3 text-sm text-brand-red bg-brand-red/10 border border-brand-red/40 rounded-lg">
                 {downloadMutation.error instanceof Error
                   ? downloadMutation.error.message
                   : "Download failed. Please try again."}
@@ -188,7 +188,7 @@ export default function Landing() {
               }
             />
             {extractMutation.isError && (
-              <div className="p-3 text-sm text-red-300 bg-red-900/20 border border-red-800 rounded-lg">
+              <div className="p-3 text-sm text-brand-red bg-brand-red/10 border border-brand-red/40 rounded-lg">
                 {extractMutation.error instanceof Error
                   ? extractMutation.error.message
                   : "Extraction failed. Please try again."}
@@ -209,7 +209,7 @@ export default function Landing() {
               <a
                 href={getFileUrl(extractResult.file_id)}
                 download={`m2p_clip_${extractResult.file_id.slice(0, 8)}.mp4`}
-                className="hud-button inline-block px-6 py-3 text-lg font-medium text-white bg-red-600 hover:bg-red-700 transition-colors"
+                className="hud-button inline-block px-6 py-3 text-lg font-medium text-white bg-brand-red hover:bg-brand-red-dark transition-colors"
               >
                 Download clip
               </a>

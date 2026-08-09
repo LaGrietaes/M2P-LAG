@@ -132,7 +132,7 @@ export function SourceCard({
                 name="contentType"
                 value="video"
                 defaultChecked
-                className="text-red-600"
+                className="text-brand-red"
               />
               <span className="text-sm text-gray-300">VIDEO</span>
             </label>
@@ -141,7 +141,7 @@ export function SourceCard({
                 type="radio"
                 name="contentType"
                 value="audio"
-                className="text-red-600"
+                className="text-brand-red"
               />
               <span className="text-sm text-gray-300">AUDIO</span>
             </label>
@@ -150,7 +150,7 @@ export function SourceCard({
                 type="radio"
                 name="contentType"
                 value="transcript"
-                className="text-red-600"
+                className="text-brand-red"
               />
               <span className="text-sm text-gray-300">TRANSCRIPT</span>
             </label>
@@ -165,7 +165,7 @@ export function SourceCard({
                   name="videoPreset"
                   value="compatible"
                   defaultChecked
-                  className="text-red-600"
+                  className="text-brand-red"
                 />
                 <span className="text-sm text-gray-300">
                   Compatible (H.264)
@@ -177,7 +177,7 @@ export function SourceCard({
                     type="radio"
                     name="videoPreset"
                     value="high_quality"
-                    className="text-red-600"
+                    className="text-brand-red"
                   />
                   <span className="text-sm text-gray-300">
                     High Quality (H.265)
@@ -188,7 +188,7 @@ export function SourceCard({
 
             {resolutions.length > 0 && (
               <select
-                className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-sm text-white focus:outline-none focus:border-red-500"
+                className="bg-gray-800 border border-gray-700 rounded px-2 py-1 text-sm text-white focus:outline-none focus:border-brand-red"
                 defaultValue="720"
               >
                 {resolutions.map((res) => (
@@ -208,7 +208,7 @@ export function SourceCard({
                 type="radio"
                 name="audioPreset"
                 value="mp3"
-                className="text-red-600"
+                className="text-brand-red"
               />
               <span className="text-sm text-gray-300">MP3</span>
             </label>
@@ -218,7 +218,7 @@ export function SourceCard({
                 name="audioPreset"
                 value="original"
                 defaultChecked
-                className="text-red-600"
+                className="text-brand-red"
               />
               <span className="text-sm text-gray-300">Original</span>
             </label>
@@ -232,7 +232,7 @@ export function SourceCard({
                   type="radio"
                   name="transcriptFormat"
                   value={fmt}
-                  className="text-red-600"
+                  className="text-brand-red"
                 />
                 <span className="text-sm text-gray-300 uppercase">{fmt}</span>
               </label>
@@ -296,7 +296,7 @@ export function SourceCard({
         <div
           className={`text-xs font-mono px-3 py-2 rounded border ${
             freeDownloadBadge === "available"
-              ? "text-red-400 border-red-800 bg-red-900/10"
+              ? "text-brand-red border-brand-red/40 bg-brand-red/10"
               : "text-gray-500 border-gray-800 bg-gray-900/40"
           }`}
         >
@@ -316,7 +316,7 @@ export function SourceCard({
         </button>
         <button
           onClick={onExtract}
-          className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+          className="px-4 py-2 text-sm font-medium text-white bg-brand-red rounded-lg hover:bg-brand-red-dark transition-colors"
         >
           Extract
         </button>

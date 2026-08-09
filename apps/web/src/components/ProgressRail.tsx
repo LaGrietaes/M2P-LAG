@@ -30,7 +30,7 @@ export function ProgressRail({ current }: ProgressRailProps) {
               aria-current={isActive ? "step" : undefined}
               className={
                 isActive
-                  ? "text-red-400 font-bold"
+                  ? "text-brand-red font-bold"
                   : isComplete
                     ? "text-gray-400"
                     : "text-gray-700"

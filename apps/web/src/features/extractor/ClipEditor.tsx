@@ -106,7 +106,7 @@ export function ClipEditor({
               value={inText}
               onChange={(e) => handleInChange(e.target.value)}
               placeholder="00:00"
-              className="w-24 px-2 py-1 text-center bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-red-500"
+              className="w-24 px-2 py-1 text-center bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-brand-red"
             />
           </label>
           <label className="flex flex-col items-center gap-1 text-sm text-gray-400">
@@ -117,7 +117,7 @@ export function ClipEditor({
               value={outText}
               onChange={(e) => handleOutChange(e.target.value)}
               placeholder="00:00"
-              className="w-24 px-2 py-1 text-center bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-red-500"
+              className="w-24 px-2 py-1 text-center bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-brand-red"
             />
           </label>
         </div>
@@ -127,7 +127,7 @@ export function ClipEditor({
           <div className="relative h-12">
             <div className="absolute inset-0 bg-gray-800 rounded-lg h-6 mt-3"></div>
             <div
-              className="absolute top-3 h-6 border-2 border-red-500 rounded"
+              className="absolute top-3 h-6 border-2 border-brand-red rounded"
               style={{
                 left: `${(inPoint / duration) * 100}%`,
                 width: `${Math.max(((outPoint - inPoint) / duration) * 100, 0)}%`,
@@ -153,14 +153,14 @@ export function ClipEditor({
             Duration: {selectedDuration.toFixed(1)} sec
           </span>
           {maxClipSeconds !== null && selectedDuration > maxClipSeconds && (
-            <span className="ml-2 text-sm text-red-400">
+            <span className="ml-2 text-sm text-brand-red">
               (exceeds {maxClipSeconds}s guest limit)
             </span>
           )}
         </div>
 
         {showError && (
-          <div className="p-3 text-sm text-red-300 bg-red-900/20 border border-red-800 rounded-lg">
+          <div className="p-3 text-sm text-brand-red bg-brand-red/10 border border-brand-red/40 rounded-lg">
             {showError}
           </div>
         )}
@@ -169,7 +169,7 @@ export function ClipEditor({
           <button
             onClick={handleExtract}
             disabled={isExtracting || selectedDuration <= 0}
-            className="px-6 py-3 text-lg font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-gray-900"
+            className="px-6 py-3 text-lg font-medium text-white bg-brand-red rounded-lg hover:bg-brand-red-dark disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus:outline-none focus:ring-2 focus:ring-brand-red focus:ring-offset-2 focus:ring-offset-gray-900"
           >
             {isExtracting ? "Extracting…" : "EXTRACT CLIP"}
           </button>

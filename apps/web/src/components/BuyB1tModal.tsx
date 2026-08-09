@@ -62,7 +62,7 @@ export function BuyB1tModal({ isOpen, onClose, onPurchased }: BuyB1tModalProps) 
               key={tier}
               onClick={() => handleBuy(tier, amount)}
               disabled={pending !== null}
-              className="flex flex-col items-center gap-1 p-4 bg-gray-800 border border-gray-700 rounded-lg hover:border-red-500 disabled:opacity-50 transition-colors"
+              className="flex flex-col items-center gap-1 p-4 bg-gray-800 border border-gray-700 rounded-lg hover:border-brand-red disabled:opacity-50 transition-colors"
             >
               <span className="text-lg font-bold text-white">{amount} B1T$</span>
               {pending === tier && (
@@ -73,7 +73,7 @@ export function BuyB1tModal({ isOpen, onClose, onPurchased }: BuyB1tModalProps) 
         </div>
 
         {error && (
-          <div className="p-3 text-sm text-red-300 bg-red-900/20 border border-red-800 rounded-lg">
+          <div className="p-3 text-sm text-brand-red bg-brand-red/10 border border-brand-red/40 rounded-lg">
             {error}
           </div>
         )}

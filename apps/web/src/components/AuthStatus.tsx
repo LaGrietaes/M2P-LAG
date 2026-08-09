@@ -46,7 +46,7 @@ export function AuthStatus() {
     return (
       <div className="flex items-center gap-4 text-sm text-gray-400">
         <span>
-          <span className="text-red-400 font-medium">Guest:</span> 20s clip limit
+          <span className="text-brand-red font-medium">Guest:</span> 20s clip limit
         </span>
         <a
           href={LAGRIETA_AUTH_URL || "#"}
