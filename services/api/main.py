@@ -64,6 +64,12 @@ auth_service = AuthService()
 _jobs: dict[str, dict] = {}
 
 
+def _owner_key(session, guest_token: str | None) -> str:
+    if session.role == "guest":
+        return f"guest:{guest_token}" if guest_token else "guest:anonymous"
+    return f"user:{session.user_id}"
+
+
 @app.get("/health", response_model=HealthResponse)
 async def health() -> HealthResponse:
     """Liveness probe."""
@@ -150,6 +156,11 @@ async def extract_clip(request: ExtractRequest, req: Request) -> ExtractResponse
 
     now = time.time()
     ttl = int(os.getenv("CLIP_TTL_SECONDS", "3600"))
+    clip_dir = storage_service.clips_dir
+    matched_path = next(
+        (p for p in clip_dir.iterdir() if p.stem.startswith(file_id)), None
+    )
+    guest_token = getattr(req.state, "guest_token", None)
     _jobs[file_id] = {
         "id": file_id,
         "status": "ready",
@@ -160,6 +171,8 @@ async def extract_clip(request: ExtractRequest, req: Request) -> ExtractResponse
         "error": None,
         "created_at": now,
         "expires_at": now + ttl,
+        "owner": _owner_key(session, guest_token),
+        "path": str(matched_path) if matched_path else None,
     }
 
     return ExtractResponse(file_id=file_id, status="ready")
@@ -175,32 +188,52 @@ async def get_job(job_id: str) -> JobResponse:
 
 
 @app.get("/api/v1/files/{file_id}")
-async def download_file(file_id: str):
-    """Download an extracted file (§08)."""
-    clips_dir = storage_service.clips_dir
-    for entry in clips_dir.iterdir():
-        if entry.is_file() and entry.stem.startswith(file_id[:8]):
-            return FileResponse(
-                path=str(entry),
-                media_type="video/mp4",
-                filename=f"m2p_clip_{file_id[:8]}.mp4",
-            )
+async def download_file(file_id: str, req: Request):
+    """Download an extracted file, restricted to its owner (spec §2)."""
+    job = _jobs.get(file_id)
+    if not job or not job.get("path"):
+        raise HTTPException(status_code=404, detail="File not found")
 
-    raise HTTPException(status_code=404, detail="File not found")
+    session = getattr(req.state, "session", None)
+    if session is None:
+        from services.auth_service import AuthService as _AuthService
+        session = _AuthService()._guest_session()
+    guest_token = getattr(req.state, "guest_token", None)
+
+    if job["owner"] != _owner_key(session, guest_token):
+        raise HTTPException(status_code=403, detail="You do not have access to this file.")
+
+    path = Path(job["path"])
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="File not found")
+
+    return FileResponse(
+        path=str(path),
+        media_type="video/mp4",
+        filename=f"m2p_clip_{file_id[:8]}.mp4",
+    )
 
 
 @app.delete("/api/v1/files/{file_id}")
-async def delete_file(file_id: str):
-    """Delete a file (§08)."""
-    clips_dir = storage_service.clips_dir
-    for entry in clips_dir.iterdir():
-        if entry.is_file() and entry.stem.startswith(file_id[:8]):
-            storage_service.delete_file(entry)
-            if file_id in _jobs:
-                del _jobs[file_id]
-            return {"status": "deleted"}
+async def delete_file(file_id: str, req: Request):
+    """Delete a file, restricted to its owner (spec §2)."""
+    job = _jobs.get(file_id)
+    if not job or not job.get("path"):
+        raise HTTPException(status_code=404, detail="File not found")
 
-    raise HTTPException(status_code=404, detail="File not found")
+    session = getattr(req.state, "session", None)
+    if session is None:
+        from services.auth_service import AuthService as _AuthService
+        session = _AuthService()._guest_session()
+    guest_token = getattr(req.state, "guest_token", None)
+
+    if job["owner"] != _owner_key(session, guest_token):
+        raise HTTPException(status_code=403, detail="You do not have access to this file.")
+
+    path = Path(job["path"])
+    storage_service.delete_file(path)
+    del _jobs[file_id]
+    return {"status": "deleted"}
 
 
 @app.get("/api/v1/me")
@@ -298,5 +331,25 @@ async def download_source(request: InspectRequest, req: Request):
             status_code=500,
             detail="An unexpected error occurred during download.",
         )
+
+    now = time.time()
+    ttl = int(os.getenv("CLIP_TTL_SECONDS", "3600"))
+    clip_dir = storage_service.clips_dir
+    matched_path = next(
+        (p for p in clip_dir.iterdir() if p.stem.startswith(file_id)), None
+    )
+    _jobs[file_id] = {
+        "id": file_id,
+        "status": "ready",
+        "media_id": None,
+        "start": None,
+        "end": None,
+        "file_id": file_id,
+        "error": None,
+        "created_at": now,
+        "expires_at": now + ttl,
+        "owner": _owner_key(session, guest_token),
+        "path": str(matched_path) if matched_path else None,
+    }
 
     return {"file_id": file_id, "status": "ready"}
