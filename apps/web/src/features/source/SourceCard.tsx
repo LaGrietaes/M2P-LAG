@@ -16,6 +16,8 @@ interface SourceCardProps {
   media: InspectResponse;
   onExtract?: () => void;
   onPreview?: () => void;
+  onDownloadSource?: () => void;
+  freeDownloadBadge?: "available" | "used" | null;
 }
 
 // Detect if any format supports HEVC/H.265 (§H)
@@ -66,7 +68,13 @@ function formatFileSize(bytes: number | null | undefined): string {
   return `${size.toFixed(1)} ${units[unit]}`;
 }
 
-export function SourceCard({ media, onExtract, onPreview }: SourceCardProps) {
+export function SourceCard({
+  media,
+  onExtract,
+  onPreview,
+  onDownloadSource,
+  freeDownloadBadge,
+}: SourceCardProps) {
   const resolutions = getResolutions(media.formats);
   const hevcAvailable = hasHevc(media.formats);
 
@@ -284,6 +292,20 @@ export function SourceCard({ media, onExtract, onPreview }: SourceCardProps) {
         </div>
       )}
 
+      {freeDownloadBadge && (
+        <div
+          className={`text-xs font-mono px-3 py-2 rounded border ${
+            freeDownloadBadge === "available"
+              ? "text-red-400 border-red-800 bg-red-900/10"
+              : "text-gray-500 border-gray-800 bg-gray-900/40"
+          }`}
+        >
+          {freeDownloadBadge === "available"
+            ? "1 FREE FULL DOWNLOAD AVAILABLE"
+            : "FREE DOWNLOAD USED — Register or buy B1T$ for more"}
+        </div>
+      )}
+
       {/* Actions (§13) */}
       <div className="flex gap-3 pt-2">
         <button
@@ -298,6 +320,14 @@ export function SourceCard({ media, onExtract, onPreview }: SourceCardProps) {
         >
           Extract
         </button>
+        {onDownloadSource && (
+          <button
+            onClick={onDownloadSource}
+            className="px-4 py-2 text-sm font-medium text-white bg-gray-800 border border-gray-700 rounded-lg hover:bg-gray-700 transition-colors"
+          >
+            Download source
+          </button>
+        )}
       </div>
     </div>
   );
