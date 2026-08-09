@@ -2,63 +2,93 @@
 @tailwind components;
 @tailwind utilities;
 
-/* M2P color scheme (§26): black/charcoal, white, red. HUD tokens: spec §5. */
-:root {
+/* ── Theme tokens (spec §3) ────────────────────────────────────────────
+   Dark is default. Light is a correct inversion. Each role gets a
+   dark-mode value and a light-mode value; dark is default via
+   prefers-color-scheme + a manual override class (data-theme="dark"|"light"
+   on <html>). */
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+  --m2p-background: #0a0e14;
+  --m2p-surface: rgba(17, 22, 31, 0.72);
+  --m2p-surface-elevated: rgba(22, 29, 41, 0.82);
+  --m2p-text-primary: #f0f2f5;
+  --m2p-text-secondary: #9aa4b2;
+  --m2p-accent: #a00000;
+  --m2p-accent-error: #ff4d4d;
+  --m2p-border-subtle: rgba(255, 255, 255, 0.08);
   --m2p-red: #a00000;
   --m2p-red-dark: #700000;
   --m2p-red-glow: rgba(160, 0, 0, 0.35);
-  --m2p-charcoal: #121212;
-  --m2p-charcoal-light: #bfbfbf;
 }
 
-/* Ensure dark mode is the default — M2P is a dark, technical tool */
+[data-theme="light"] {
+  color-scheme: light;
+  --m2p-background: #f5f6f8;
+  --m2p-surface: rgba(255, 255, 255, 0.72);
+  --m2p-surface-elevated: rgba(240, 242, 245, 0.82);
+  --m2p-text-primary: #111827;
+  --m2p-text-secondary: #4b5563;
+  --m2p-accent: #a00000;
+  --m2p-accent-error: #d32f2f;
+  --m2p-border-subtle: rgba(0, 0, 0, 0.1);
+  --m2p-red: #a00000;
+  --m2p-red-dark: #700000;
+  --m2p-red-glow: rgba(160, 0, 0, 0.35);
+}
+
+/* Default to dark when no data-theme is set */
 html {
   color-scheme: dark;
 }
 
+body {
+  background-color: var(--m2p-background);
+  color: var(--m2p-text-primary);
+  font-family: 'Chivo', system-ui, sans-serif;
+}
+
 @layer components {
-  /* Clipped-corner HUD panel (spec §5) */
-  .hud-panel {
-    clip-path: polygon(
-      0 12px,
-      12px 0,
-      100% 0,
-      100% calc(100% - 12px),
-      calc(100% - 12px) 100%,
-      0 100%
-    );
+  /* ── Glass panels (spec §3 depth/glass) ─────────────────────────── */
+  .glass-panel {
+    background: var(--m2p-surface);
+    backdrop-filter: blur(32px);
+    -webkit-backdrop-filter: blur(32px);
+    border: 0.5px solid var(--m2p-border-subtle);
   }
 
-  /* Thin red-glow border for focus/active HUD elements (spec §5) */
-  .hud-glow-border {
-    border: 1px solid rgba(160, 0, 0, 0.6);
-    box-shadow: 0 0 12px 0 var(--m2p-red-glow);
+  .glass-panel-active {
+    background: var(--m2p-surface-elevated);
+    backdrop-filter: blur(64px);
+    -webkit-backdrop-filter: blur(64px);
+    border: 0.5px solid var(--m2p-border-subtle);
   }
 
   /* Corner bracket accents, absolutely positioned inside a `relative` parent */
-  .hud-corner-brackets::before,
-  .hud-corner-brackets::after {
+  .corner-brackets::before,
+  .corner-brackets::after {
     content: "";
     position: absolute;
     width: 16px;
     height: 16px;
-    border-color: var(--m2p-red);
+    border-color: var(--m2p-accent);
     pointer-events: none;
   }
-  .hud-corner-brackets::before {
+  .corner-brackets::before {
     top: 0;
     left: 0;
-    border-top: 2px solid var(--m2p-red);
-    border-left: 2px solid var(--m2p-red);
+    border-top: 2px solid var(--m2p-accent);
+    border-left: 2px solid var(--m2p-accent);
   }
-  .hud-corner-brackets::after {
+  .corner-brackets::after {
     bottom: 0;
     right: 0;
-    border-bottom: 2px solid var(--m2p-red);
-    border-right: 2px solid var(--m2p-red);
+    border-bottom: 2px solid var(--m2p-accent);
+    border-right: 2px solid var(--m2p-accent);
   }
 
-  /* Subtle background grid texture — decorative only, sits behind text (spec §5 a11y) */
+  /* Subtle background grid texture — decorative only, sits behind text (spec §3 a11y) */
   .hud-scanlines {
     background-image: repeating-linear-gradient(
         0deg,
@@ -76,13 +106,35 @@ html {
       );
   }
 
-  /* Angular button with a scan-line hover sweep (spec §5) — CSS only, no JS */
-  .hud-button {
+  /* Scanline-on-focus input (spec §3 motion) */
+  .scanline-input {
+    position: relative;
+  }
+  .scanline-input:focus-within::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    width: 2px;
+    background: var(--m2p-accent);
+    box-shadow: 0 0 10px var(--m2p-accent);
+    animation: scan 1.5s infinite linear;
+    pointer-events: none;
+  }
+  @keyframes scan {
+    0% { left: 0%; opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { left: 100%; opacity: 0; }
+  }
+
+  /* Hover-sweep button (spec §3 motion) — CSS only, no JS */
+  .btn-sweep {
     position: relative;
     overflow: hidden;
-    clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
   }
-  .hud-button::after {
+  .btn-sweep::after {
     content: "";
     position: absolute;
     top: 0;
@@ -97,7 +149,52 @@ html {
     );
     transition: left 0.4s ease;
   }
-  .hud-button:hover::after {
+  .btn-sweep:hover::after {
     left: 120%;
+  }
+
+  /* Tactile slider (spec §5 clip mode) */
+  input[type="range"].tactile-slider {
+    -webkit-appearance: none;
+    width: 100%;
+    background: transparent;
+  }
+  input[type="range"].tactile-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    height: 24px;
+    width: 4px;
+    background: var(--m2p-accent);
+    box-shadow: 0 0 10px var(--m2p-accent);
+    cursor: ew-resize;
+    margin-top: -11px;
+    border-radius: 0;
+  }
+  input[type="range"].tactile-slider::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 1px;
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  /* Pixel-grid extraction animation (spec §5 extract) */
+  @keyframes pixelNoise {
+    0%, 100% { opacity: 0.85; filter: brightness(1); }
+    33% { opacity: 0.5; filter: brightness(1.2); }
+    66% { opacity: 1; filter: brightness(0.9); }
+  }
+  .pixel-active {
+    background-color: var(--m2p-accent);
+    animation: pixelNoise 0.6s infinite steps(2);
+    box-shadow: 0 0 4px var(--m2p-accent);
+  }
+  .pixel-active:nth-child(odd) {
+    animation-duration: 0.4s;
+  }
+  .pixel-active:nth-child(3n) {
+    animation-duration: 0.9s;
+  }
+  .pixel-inactive {
+    background-color: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.02);
   }
 }
