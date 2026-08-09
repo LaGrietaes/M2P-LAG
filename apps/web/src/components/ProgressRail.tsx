@@ -1,9 +1,9 @@
 /**
- * ProgressRail — 4-step HUD indicator matching the product pipeline
- * (SOURCE → INSPECT → EXTRACT → DELIVER, spec §5, README.md tagline).
+ * ProgressRail — persistent left-nav pipeline stepper (spec §4).
+ * Source/Inspect/Configure/Extract/Deliver, matching the mockups' sidebar.
  */
 
-type ViewState = "input" | "source" | "extractor" | "result";
+type ViewState = "input" | "source" | "configure" | "extracting" | "result";
 
 interface ProgressRailProps {
   current: ViewState;
@@ -12,7 +12,8 @@ interface ProgressRailProps {
 const STEPS: { view: ViewState; label: string }[] = [
   { view: "input", label: "SOURCE" },
   { view: "source", label: "INSPECT" },
-  { view: "extractor", label: "EXTRACT" },
+  { view: "configure", label: "CONFIGURE" },
+  { view: "extracting", label: "EXTRACT" },
   { view: "result", label: "DELIVER" },
 ];
 
@@ -20,30 +21,28 @@ export function ProgressRail({ current }: ProgressRailProps) {
   const currentIndex = STEPS.findIndex((s) => s.view === current);
 
   return (
-    <div className="flex items-center gap-2 text-xs font-mono tracking-widest">
+    <nav className="flex flex-col gap-1 font-mono text-xs tracking-widest uppercase">
       {STEPS.map((step, i) => {
         const isActive = step.view === current;
         const isComplete = i < currentIndex;
         return (
-          <div key={step.view} className="flex items-center gap-2">
-            <span
-              aria-current={isActive ? "step" : undefined}
-              className={
-                isActive
-                  ? "text-brand-red font-bold"
-                  : isComplete
-                    ? "text-gray-400"
-                    : "text-gray-700"
-              }
-            >
-              {step.label}
+          <div
+            key={step.view}
+            className={`flex items-center gap-3 px-3 py-2 border-l-2 transition-colors ${
+              isActive
+                ? "text-accent border-accent bg-accent/5"
+                : isComplete
+                  ? "text-text-secondary border-border-subtle hover:text-text-primary"
+                  : "text-text-secondary/50 border-border-subtle"
+            }`}
+          >
+            <span className="text-[10px] opacity-60">
+              {String(i + 1).padStart(2, "0")}
             </span>
-            {i < STEPS.length - 1 && (
-              <span className="text-gray-800">—</span>
-            )}
+            <span aria-current={isActive ? "step" : undefined}>{step.label}</span>
           </div>
         );
       })}
-    </div>
+    </nav>
   );
 }

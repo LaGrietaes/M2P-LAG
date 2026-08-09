@@ -1,12 +1,11 @@
 /**
  * BuyB1tModal — package-tier B1T$ purchase entry point (spec §4).
- *
- * Backend is stubbed: returns 501 in production config, credits balance
- * only when M2P_DEV_CREDIT_GRANTS is set server-side.
+ * Restyled onto the new glass/panel language (spec §4).
  */
 
 import { useState } from "react";
 import { purchaseB1t } from "../lib/api";
+import { Panel } from "./ui/Panel";
 
 interface BuyB1tModalProps {
   isOpen: boolean;
@@ -44,12 +43,12 @@ export function BuyB1tModal({ isOpen, onClose, onPurchased }: BuyB1tModalProps) 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
-      <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 max-w-md w-full mx-4 space-y-4">
+      <Panel variant="active" className="p-6 max-w-md w-full mx-4 space-y-4">
         <div className="flex justify-between items-center">
-          <h2 className="text-xl font-bold text-white">Buy B1T$</h2>
+          <h2 className="text-xl font-bold text-text-primary">Buy B1T$</h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-300"
+            className="text-text-secondary hover:text-text-primary"
             aria-label="Close"
           >
             ✕
@@ -62,22 +61,22 @@ export function BuyB1tModal({ isOpen, onClose, onPurchased }: BuyB1tModalProps) 
               key={tier}
               onClick={() => handleBuy(tier, amount)}
               disabled={pending !== null}
-              className="flex flex-col items-center gap-1 p-4 bg-gray-800 border border-gray-700 rounded-lg hover:border-brand-red disabled:opacity-50 transition-colors"
+              className="flex flex-col items-center gap-1 p-4 bg-surface border border-border-subtle hover:border-accent disabled:opacity-50 transition-colors"
             >
-              <span className="text-lg font-bold text-white">{amount} B1T$</span>
+              <span className="text-lg font-bold text-text-primary">{amount} B1T$</span>
               {pending === tier && (
-                <span className="text-xs text-gray-400">Processing…</span>
+                <span className="text-xs text-text-secondary">Processing…</span>
               )}
             </button>
           ))}
         </div>
 
         {error && (
-          <div className="p-3 text-sm text-brand-red bg-brand-red/10 border border-brand-red/40 rounded-lg">
+          <div className="p-3 text-sm text-accent-error bg-accent-error/10 border border-accent-error/40">
             {error}
           </div>
         )}
-      </div>
+      </Panel>
     </div>
   );
 }

@@ -1,15 +1,13 @@
 /**
  * AuthStatus — shows current user state and register/sign-out (spec §4).
- *
- * Register redirects to LaGrieta's auth (VITE_LAGRIETA_AUTH_URL); disabled
- * with a "Coming soon" state until that URL is configured, since LAG-Bridge
- * is not yet live on the LaGrieta side (docs/LAG-BRIDGE.md).
+ * Restyled: identity/balance readout moves into the persistent sidebar (spec §4).
  */
 
 import { useState, useEffect } from "react";
 import { getQuota, getMe } from "../lib/api";
 import { setAuthToken } from "../lib/guestToken";
 import type { Session } from "../types";
+import { StatusBadge } from "./ui/StatusBadge";
 
 const LAGRIETA_AUTH_URL = import.meta.env.VITE_LAGRIETA_AUTH_URL as
   | string
@@ -39,15 +37,16 @@ export function AuthStatus() {
   }, []);
 
   if (loading) {
-    return <div className="text-sm text-gray-400">Loading...</div>;
+    return <div className="text-sm text-text-secondary font-mono">LOADING…</div>;
   }
 
   if (!session || session.role === "guest") {
     return (
-      <div className="flex items-center gap-4 text-sm text-gray-400">
-        <span>
-          <span className="text-brand-red font-medium">Guest:</span> 20s clip limit
-        </span>
+      <div className="flex flex-col gap-3 text-sm text-text-secondary font-mono">
+        <div className="flex items-center gap-2">
+          <StatusBadge tone="accent">Guest</StatusBadge>
+          <span>20s clip limit</span>
+        </div>
         <a
           href={LAGRIETA_AUTH_URL || "#"}
           aria-disabled={!LAGRIETA_AUTH_URL}
@@ -55,7 +54,7 @@ export function AuthStatus() {
           onClick={(e) => {
             if (!LAGRIETA_AUTH_URL) e.preventDefault();
           }}
-          className={`px-3 py-1 text-sm text-white bg-gray-800 border border-gray-700 rounded hover:bg-gray-700 ${
+          className={`px-3 py-1 text-sm text-text-primary bg-transparent border border-border-subtle hover:bg-surface-elevated transition-colors ${
             !LAGRIETA_AUTH_URL ? "opacity-50 cursor-not-allowed" : ""
           }`}
         >
@@ -66,14 +65,18 @@ export function AuthStatus() {
   }
 
   return (
-    <div className="text-sm text-gray-300">
-      <span className="text-green-400 font-medium">
-        {session.name || session.email || session.user_id}
-      </span>
-      <span className="ml-2 text-gray-500">({session.role})</span>
-      <span className="ml-2 text-gray-500">b1t$: {session.b1t_balance}</span>
+    <div className="flex flex-col gap-3 text-sm text-text-primary font-mono">
+      <div className="flex items-center gap-2">
+        <StatusBadge tone="success">
+          {session.name || session.email || session.user_id}
+        </StatusBadge>
+        <span className="text-text-secondary">({session.role})</span>
+      </div>
+      <div className="text-text-secondary">
+        b1t$: <span className="text-text-primary tabular-nums">{session.b1t_balance}</span>
+      </div>
       <button
-        className="ml-4 px-3 py-1 text-sm text-gray-300 bg-gray-800 border border-gray-700 rounded hover:bg-gray-700"
+        className="px-3 py-1 text-sm text-text-primary bg-transparent border border-border-subtle hover:bg-surface-elevated transition-colors"
         onClick={() => {
           setAuthToken(null);
           setSession(null);

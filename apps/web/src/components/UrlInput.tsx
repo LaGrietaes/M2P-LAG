@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { inspectMedia } from '../lib/api'
 import type { InspectResponse } from '../types'
+import { Button } from './ui/Button'
 
 interface UrlInputProps {
   onInspectSuccess?: (data: InspectResponse) => void
@@ -25,25 +26,27 @@ export function UrlInput({ onInspectSuccess }: UrlInputProps) {
 
   return (
     <div className="space-y-4">
-      <input
-        type="url"
-        placeholder="Paste media URL here"
-        value={url}
-        onChange={(e) => setUrl(e.target.value)}
-        onKeyDown={(e) => e.key === 'Enter' && handleInspect()}
-        disabled={mutation.isPending}
-        className="w-full px-4 py-3 text-lg text-white bg-gray-900 border border-gray-700 rounded-lg placeholder-gray-500 focus:outline-none focus:border-brand-red focus:ring-1 focus:ring-brand-red disabled:opacity-50"
-      />
-      <button
+      <div className="scanline-input relative">
+        <input
+          type="url"
+          placeholder="Paste media URL here"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleInspect()}
+          disabled={mutation.isPending}
+          className="w-full px-4 py-3 text-lg text-text-primary bg-surface border border-border-subtle placeholder-text-secondary focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent disabled:opacity-50 font-mono"
+        />
+      </div>
+      <Button
         onClick={handleInspect}
         disabled={mutation.isPending || !url.trim()}
-        className="w-full py-3 text-lg font-medium text-white bg-brand-red rounded-lg hover:bg-brand-red-dark disabled:opacity-50 disabled:cursor-not-allowed transition-colors focus:outline-none focus:ring-2 focus:ring-brand-red focus:ring-offset-2 focus:ring-offset-gray-900"
+        className="w-full py-3 text-lg"
       >
-        {mutation.isPending ? 'Inspecting…' : 'INSPECT'}
-      </button>
+        {mutation.isPending ? 'Inspecting…' : 'INITIATE INSPECTION'}
+      </Button>
 
       {mutation.isError && (
-        <p className="text-sm text-brand-red">
+        <p className="text-sm text-accent-error">
           {mutation.error instanceof Error
             ? mutation.error.message
             : 'Something went wrong. Please try again.'}
