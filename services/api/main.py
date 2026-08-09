@@ -297,10 +297,16 @@ async def get_quota(request: Request):
             GuestService().has_used_free_download(guest_token) if guest_token else False
         )
 
+    max_clip_seconds = None
+    max_file_size = None
+    if session.role == "guest":
+        max_clip_seconds = quota.get("max_clip_seconds", settings.GUEST_MAX_CLIP_SECONDS)
+        max_file_size = quota.get("max_file_size", settings.GUEST_MAX_FILE_SIZE)
+
     return {
         "role": session.role,
-        "max_clip_seconds": quota.get("max_clip_seconds", settings.GUEST_MAX_CLIP_SECONDS),
-        "max_file_size": quota.get("max_file_size", settings.GUEST_MAX_FILE_SIZE),
+        "max_clip_seconds": max_clip_seconds,
+        "max_file_size": max_file_size,
         "daily_jobs_remaining": quota.get("daily_jobs"),
         "b1t_balance": session.b1t_balance,
         "free_download_used": free_download_used,
