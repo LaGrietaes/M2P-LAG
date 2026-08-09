@@ -2,10 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
-/* M2P color scheme (§26): black/charcoal, white, red */
+/* M2P color scheme (§26): black/charcoal, white, red. HUD tokens: spec §5. */
 :root {
   --m2p-red: #a00000;
   --m2p-red-dark: #700000;
+  --m2p-red-glow: rgba(160, 0, 0, 0.35);
   --m2p-charcoal: #121212;
   --m2p-charcoal-light: #bfbfbf;
 }
@@ -13,4 +14,90 @@
 /* Ensure dark mode is the default — M2P is a dark, technical tool */
 html {
   color-scheme: dark;
+}
+
+@layer components {
+  /* Clipped-corner HUD panel (spec §5) */
+  .hud-panel {
+    clip-path: polygon(
+      0 12px,
+      12px 0,
+      100% 0,
+      100% calc(100% - 12px),
+      calc(100% - 12px) 100%,
+      0 100%
+    );
+  }
+
+  /* Thin red-glow border for focus/active HUD elements (spec §5) */
+  .hud-glow-border {
+    border: 1px solid rgba(160, 0, 0, 0.6);
+    box-shadow: 0 0 12px 0 var(--m2p-red-glow);
+  }
+
+  /* Corner bracket accents, absolutely positioned inside a `relative` parent */
+  .hud-corner-brackets::before,
+  .hud-corner-brackets::after {
+    content: "";
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border-color: var(--m2p-red);
+    pointer-events: none;
+  }
+  .hud-corner-brackets::before {
+    top: 0;
+    left: 0;
+    border-top: 2px solid var(--m2p-red);
+    border-left: 2px solid var(--m2p-red);
+  }
+  .hud-corner-brackets::after {
+    bottom: 0;
+    right: 0;
+    border-bottom: 2px solid var(--m2p-red);
+    border-right: 2px solid var(--m2p-red);
+  }
+
+  /* Subtle background grid texture — decorative only, sits behind text (spec §5 a11y) */
+  .hud-scanlines {
+    background-image: repeating-linear-gradient(
+        0deg,
+        rgba(255, 255, 255, 0.02) 0px,
+        rgba(255, 255, 255, 0.02) 1px,
+        transparent 1px,
+        transparent 3px
+      ),
+      repeating-linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.015) 0px,
+        rgba(255, 255, 255, 0.015) 1px,
+        transparent 1px,
+        transparent 40px
+      );
+  }
+
+  /* Angular button with a scan-line hover sweep (spec §5) — CSS only, no JS */
+  .hud-button {
+    position: relative;
+    overflow: hidden;
+    clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+  }
+  .hud-button::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 60%;
+    height: 100%;
+    background: linear-gradient(
+      120deg,
+      transparent,
+      rgba(255, 255, 255, 0.15),
+      transparent
+    );
+    transition: left 0.4s ease;
+  }
+  .hud-button:hover::after {
+    left: 120%;
+  }
 }

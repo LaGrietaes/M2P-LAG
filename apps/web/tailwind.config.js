@@ -7,8 +7,10 @@ export default {
         // M2P brand palette (§26): black/charcoal, white, red
         red: '#a00000',
         'red-dark': '#700000',
+        'red-glow': 'rgba(160, 0, 0, 0.35)',
         charcoal: '#121212',
         'charcoal-light': '#bfbfbf',
+        ink: '#e8e8e8',
       },
       fontFamily: {
         sans: [
