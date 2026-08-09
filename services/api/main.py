@@ -22,12 +22,15 @@ from models import (
     JobResponse,
     HealthResponse,
     VersionResponse,
+    PurchaseRequest,
+    PurchaseResponse,
 )
 from services.metadata_service import MetadataService, MetadataError
 from services.extraction_service import ExtractionService, ExtractionError
 from services.storage_service import StorageService
 from services.cleanup_service import CleanupService
 from services.auth_service import AuthService
+from services.guest_service import GuestService
 from middleware import AuthMiddleware, RateLimitMiddleware
 
 log = logging.getLogger("m2p.api")
@@ -59,6 +62,9 @@ extraction_service = ExtractionService()
 storage_service = StorageService()
 cleanup_service = CleanupService()
 auth_service = AuthService()
+# Note: GuestService is constructed fresh per-request in get_quota (below)
+# rather than as a module-level singleton, so tests that monkeypatch
+# settings.DATA_DIR after import still see the correct data dir.
 
 # ── In-memory job store (Phase 3 — no DB, §31) ──────────────────────────
 _jobs: dict[str, dict] = {}
@@ -272,10 +278,9 @@ async def get_me(request: Request):
 
 @app.get("/api/v1/me/quota")
 async def get_quota(request: Request):
-    """Get user quota (§17)."""
-    session = getattr(request.state, "session", None)
-    if not session:
-        session = auth_service._guest_session()
+    """Get user quota (§17, spec §3)."""
+    session = _session_from_request(request)
+    guest_token = getattr(request.state, "guest_token", None)
 
     quota = session.quota or {
         "max_clip_seconds": settings.GUEST_MAX_CLIP_SECONDS,
@@ -284,12 +289,21 @@ async def get_quota(request: Request):
         "storage_quota": settings.USER_STORAGE_QUOTA,
     }
 
+    free_download_used = None
+    if session.role == "guest":
+        # Constructed fresh (not the module-level guest_service) so tests that
+        # monkeypatch settings.DATA_DIR after import see the right data dir.
+        free_download_used = (
+            GuestService().has_used_free_download(guest_token) if guest_token else False
+        )
+
     return {
         "role": session.role,
         "max_clip_seconds": quota.get("max_clip_seconds", settings.GUEST_MAX_CLIP_SECONDS),
         "max_file_size": quota.get("max_file_size", settings.GUEST_MAX_FILE_SIZE),
         "daily_jobs_remaining": quota.get("daily_jobs"),
         "b1t_balance": session.b1t_balance,
+        "free_download_used": free_download_used,
     }
 
 
@@ -360,3 +374,27 @@ async def download_source(request: InspectRequest, req: Request):
     }
 
     return {"file_id": file_id, "status": "ready"}
+
+
+@app.post("/api/v1/b1t/purchase", response_model=PurchaseResponse)
+async def purchase_b1t(request: PurchaseRequest) -> PurchaseResponse:
+    """Buy B1T$ credits (spec §4). Stub — real payment integration is out of scope.
+
+    Default config: always returns 501. When M2P_DEV_CREDIT_GRANTS=true, grants
+    the tier's credits so the UI flow is demoable without a payment provider.
+    """
+    if not settings.M2P_DEV_CREDIT_GRANTS:
+        raise HTTPException(
+            status_code=501,
+            detail="B1T$ purchases are not yet available.",
+        )
+
+    amount = settings.B1T_PACKAGE_TIERS.get(request.tier)
+    if amount is None:
+        raise HTTPException(status_code=422, detail="Unknown package tier.")
+
+    return PurchaseResponse(
+        status="granted",
+        b1t_credited=amount,
+        message=f"{amount} B1T$ credited (dev mode).",
+    )

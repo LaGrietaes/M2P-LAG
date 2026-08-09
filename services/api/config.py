@@ -76,6 +76,12 @@ class Settings:
         "ENABLE_B1T_CREDITS", "false"
     ).lower() in ("1", "true", "yes")
 
+    # ── B1T$ purchase (spec §4) ─────────────────────────────────────────
+    M2P_DEV_CREDIT_GRANTS: bool = os.getenv(
+        "M2P_DEV_CREDIT_GRANTS", "false"
+    ).lower() in ("1", "true", "yes")
+    B1T_PACKAGE_TIERS: dict = {1: 100, 2: 500, 3: 1000}
+
     # ── Version ─────────────────────────────────────────────────────────
     VERSION: str = os.getenv("M2P_VERSION", "0.1.0")
 
