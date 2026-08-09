@@ -1,13 +1,19 @@
 /**
- * AuthStatus — shows current user state and login/logout (§20, §J).
+ * AuthStatus — shows current user state and register/sign-out (spec §4).
  *
- * Phase 4: integrates with LaGrieta LAG-Bridge.
- * For now, shows guest state and a placeholder login button.
+ * Register redirects to LaGrieta's auth (VITE_LAGRIETA_AUTH_URL); disabled
+ * with a "Coming soon" state until that URL is configured, since LAG-Bridge
+ * is not yet live on the LaGrieta side (docs/LAG-BRIDGE.md).
  */
 
 import { useState, useEffect } from "react";
 import { getQuota, getMe } from "../lib/api";
+import { setAuthToken } from "../lib/guestToken";
 import type { Session } from "../types";
+
+const LAGRIETA_AUTH_URL = import.meta.env.VITE_LAGRIETA_AUTH_URL as
+  | string
+  | undefined;
 
 export function AuthStatus() {
   const [session, setSession] = useState<Session | null>(null);
@@ -38,27 +44,28 @@ export function AuthStatus() {
   }, []);
 
   if (loading) {
-    return (
-      <div className="text-sm text-gray-400">
-        Loading...
-      </div>
-    );
+    return <div className="text-sm text-gray-400">Loading...</div>;
   }
 
   if (!session || session.role === "guest") {
     return (
-      <div className="text-sm text-gray-400">
-        <span className="text-red-400 font-medium">Guest:</span>{" "}
-        20s clip limit
-        <button
-          className="ml-4 px-3 py-1 text-sm text-white bg-gray-800 border border-gray-700 rounded hover:bg-gray-700"
-          onClick={() => {
-            /* Phase 4: open LaGrieta login flow */
-            alert("LaGrieta login integration pending (Phase 4)");
+      <div className="flex items-center gap-4 text-sm text-gray-400">
+        <span>
+          <span className="text-red-400 font-medium">Guest:</span> 20s clip limit
+        </span>
+        <a
+          href={LAGRIETA_AUTH_URL || "#"}
+          aria-disabled={!LAGRIETA_AUTH_URL}
+          title={!LAGRIETA_AUTH_URL ? "Coming soon" : undefined}
+          onClick={(e) => {
+            if (!LAGRIETA_AUTH_URL) e.preventDefault();
           }}
+          className={`px-3 py-1 text-sm text-white bg-gray-800 border border-gray-700 rounded hover:bg-gray-700 ${
+            !LAGRIETA_AUTH_URL ? "opacity-50 cursor-not-allowed" : ""
+          }`}
         >
           Sign in with LaGrieta
-        </button>
+        </a>
       </div>
     );
   }
@@ -69,14 +76,12 @@ export function AuthStatus() {
         {session.name || session.email || session.user_id}
       </span>
       <span className="ml-2 text-gray-500">({session.role})</span>
-      <span className="ml-2 text-gray-500">
-        b1t$: {session.b1t_balance}
-      </span>
+      <span className="ml-2 text-gray-500">b1t$: {session.b1t_balance}</span>
       <button
         className="ml-4 px-3 py-1 text-sm text-gray-300 bg-gray-800 border border-gray-700 rounded hover:bg-gray-700"
         onClick={() => {
-          /* Phase 4: logout */
-          alert("Logout pending (Phase 4)");
+          setAuthToken(null);
+          setSession(null);
         }}
       >
         Sign out
