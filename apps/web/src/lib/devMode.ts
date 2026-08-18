@@ -1,29 +1,43 @@
 /**
- * DevMode utilities — exported separately to avoid react-refresh/only-export-components lint error
+ * DevMode utilities — supports guest, registered, and developer accounts.
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
-type DevMode = "guest" | "registered";
+export type DevRole = "guest" | "registered" | "developer";
 
 export const isDevModeAvailable = import.meta.env.DEV;
 
-/**
- * Plain (non-hook) accessor so api.ts's authHeaders() can read the current
- * dev-mode choice outside React — mirrors getGuestToken()/getAuthToken() in
- * guestToken.ts. Only meaningful when the backend also has M2P_DEV_MODE=true
- * (services/api/config.py); the header is otherwise ignored.
- */
-export function getDevRole(): DevMode {
-  return (localStorage.getItem("m2p-dev-mode") as DevMode) || "guest";
+export function getDevRole(): DevRole {
+  return (localStorage.getItem("m2p-dev-mode") as DevRole) || "guest";
+}
+
+export function setDevRole(role: DevRole): void {
+  localStorage.setItem("m2p-dev-mode", role);
+  window.dispatchEvent(new Event("m2p-dev-mode-changed"));
 }
 
 export function useDevMode() {
-  const [mode] = useState<DevMode>(getDevRole);
+  const [mode, setMode] = useState<DevRole>(getDevRole);
+
+  useEffect(() => {
+    const handleRoleChange = () => setMode(getDevRole());
+    window.addEventListener("m2p-dev-mode-changed", handleRoleChange);
+    window.addEventListener("storage", handleRoleChange);
+    return () => {
+      window.removeEventListener("m2p-dev-mode-changed", handleRoleChange);
+      window.removeEventListener("storage", handleRoleChange);
+    };
+  }, []);
 
   return {
-    isRegistered: mode === "registered",
+    isDeveloper: mode === "developer",
+    isRegistered: mode === "registered" || mode === "developer",
     isGuest: mode === "guest",
     mode,
+    setRole: (newRole: DevRole) => {
+      setDevRole(newRole);
+      setMode(newRole);
+    },
   };
 }

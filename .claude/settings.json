@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m pytest tests/test_files_ownership.py -v)",
+      "Bash(python -m pytest -v)",
+      "Bash(git commit -m ' *)"
+    ]
+  }
+}

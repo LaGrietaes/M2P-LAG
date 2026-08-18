@@ -2,43 +2,43 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── Theme tokens (spec §3) ────────────────────────────────────────────
-   Dark is default. Light is a correct inversion. Each role gets a
-   dark-mode value and a light-mode value; dark is default via
-   prefers-color-scheme + a manual override class (data-theme="dark"|"light"
-   on <html>). */
+/* ── M2P Disciplined Tactical Design Tokens ──────────────────────────── */
 :root,
 [data-theme="dark"] {
   color-scheme: dark;
-  --m2p-background: #0a0e14;
-  --m2p-surface: rgba(17, 22, 31, 0.72);
-  --m2p-surface-elevated: rgba(22, 29, 41, 0.82);
-  --m2p-text-primary: #f0f2f5;
-  --m2p-text-secondary: #9aa4b2;
+  --m2p-background: #040508;
+  --m2p-surface: rgba(10, 13, 19, 0.88);
+  --m2p-surface-elevated: rgba(16, 21, 30, 0.95);
+  --m2p-text-primary: #ffffff;
+  --m2p-text-secondary: #8a95a5;
   --m2p-accent: #a00000;
-  --m2p-accent-error: #ff4d4d;
-  --m2p-border-subtle: rgba(255, 255, 255, 0.08);
-  --m2p-red: #a00000;
-  --m2p-red-dark: #700000;
-  --m2p-red-glow: rgba(160, 0, 0, 0.35);
+  --m2p-accent-bright: #d90429;
+  --m2p-accent-glow: rgba(160, 0, 0, 0.4);
+  --m2p-accent-error: #ff2a2a;
+  --m2p-border-subtle: rgba(255, 255, 255, 0.12);
+  --m2p-border-strong: rgba(255, 255, 255, 0.25);
 }
 
 [data-theme="light"] {
   color-scheme: light;
-  --m2p-background: #f5f6f8;
-  --m2p-surface: rgba(255, 255, 255, 0.72);
-  --m2p-surface-elevated: rgba(240, 242, 245, 0.82);
-  --m2p-text-primary: #111827;
-  --m2p-text-secondary: #4b5563;
+  --m2p-background: #f4f6f8;
+  --m2p-surface: rgba(255, 255, 255, 0.92);
+  --m2p-surface-elevated: rgba(240, 242, 245, 0.98);
+  --m2p-text-primary: #0a0e14;
+  --m2p-text-secondary: #475569;
   --m2p-accent: #a00000;
+  --m2p-accent-bright: #d90429;
+  --m2p-accent-glow: rgba(160, 0, 0, 0.25);
   --m2p-accent-error: #d32f2f;
-  --m2p-border-subtle: rgba(0, 0, 0, 0.1);
-  --m2p-red: #a00000;
-  --m2p-red-dark: #700000;
-  --m2p-red-glow: rgba(160, 0, 0, 0.35);
+  --m2p-border-subtle: rgba(0, 0, 0, 0.15);
+  --m2p-border-strong: rgba(0, 0, 0, 0.3);
 }
 
-/* Default to dark when no data-theme is set */
+/* Enforce 0px sharp corners across all UI components */
+*, ::before, ::after {
+  border-radius: 0 !important;
+}
+
 html {
   color-scheme: dark;
 }
@@ -47,113 +47,106 @@ body {
   background-color: var(--m2p-background);
   color: var(--m2p-text-primary);
   font-family: 'Chivo', system-ui, sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+  position: relative;
 }
 
 @layer components {
-  /* ── Glass panels (spec §3 depth/glass) ─────────────────────────── */
+  /* ── Dynamic CRT Ambient Background Stage ────────────────────────── */
+  .ambient-bg-stage {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background-size: cover;
+    background-position: center;
+    background-image: radial-gradient(circle at 50% 50%, rgba(160,0,0,0.12) 0%, transparent 60%);
+    transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    filter: grayscale(0.5) contrast(140%) brightness(0.35);
+    opacity: 0.3;
+  }
+  .ambient-bg-stage.has-media {
+    opacity: 0.45;
+    animation: crtEdgeGlitch 8s infinite alternate;
+  }
+
+  @keyframes crtEdgeGlitch {
+    0% { filter: grayscale(0.6) contrast(150%) brightness(0.35) invert(0.05); }
+    50% { filter: grayscale(0.3) contrast(180%) brightness(0.4) invert(0); }
+    52% { filter: grayscale(0.8) contrast(200%) brightness(0.5) invert(0.1); transform: scale(1.01); }
+    54% { filter: grayscale(0.4) contrast(150%) brightness(0.35) invert(0); transform: scale(1); }
+    100% { filter: grayscale(0.5) contrast(160%) brightness(0.38); }
+  }
+
+  /* CRT Scanlines Overlay */
+  .crt-scanlines {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background: 
+      repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.25) 0px, rgba(0, 0, 0, 0.25) 1px, transparent 1px, transparent 3px),
+      repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.015) 0px, rgba(255, 255, 255, 0.015) 1px, transparent 1px, transparent 40px);
+  }
+
+  /* ── Glass panels ───────────────────────────────────────────────── */
   .glass-panel {
     background: var(--m2p-surface);
-    backdrop-filter: blur(32px);
-    -webkit-backdrop-filter: blur(32px);
-    border: 0.5px solid var(--m2p-border-subtle);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--m2p-border-subtle);
+    position: relative;
   }
 
   .glass-panel-active {
     background: var(--m2p-surface-elevated);
-    backdrop-filter: blur(64px);
-    -webkit-backdrop-filter: blur(64px);
-    border: 0.5px solid var(--m2p-border-subtle);
+    border: 1px solid var(--m2p-accent-bright);
+    box-shadow: 0 0 25px var(--m2p-accent-glow);
   }
 
-  /* Corner bracket accents, absolutely positioned inside a `relative` parent */
+  /* 90-degree corner bracket accents */
+  .corner-brackets {
+    position: relative;
+  }
   .corner-brackets::before,
   .corner-brackets::after {
     content: "";
     position: absolute;
-    width: 16px;
-    height: 16px;
-    border-color: var(--m2p-accent);
+    width: 8px;
+    height: 8px;
     pointer-events: none;
+    z-index: 10;
   }
   .corner-brackets::before {
-    top: 0;
-    left: 0;
-    border-top: 2px solid var(--m2p-accent);
-    border-left: 2px solid var(--m2p-accent);
+    top: -1px;
+    left: -1px;
+    border-top: 2px solid var(--m2p-accent-bright);
+    border-left: 2px solid var(--m2p-accent-bright);
   }
   .corner-brackets::after {
-    bottom: 0;
-    right: 0;
-    border-bottom: 2px solid var(--m2p-accent);
-    border-right: 2px solid var(--m2p-accent);
+    bottom: -1px;
+    right: -1px;
+    border-bottom: 2px solid var(--m2p-accent-bright);
+    border-right: 2px solid var(--m2p-accent-bright);
   }
 
-  /* Subtle background grid texture — decorative only, sits behind text (spec §3 a11y) */
-  .hud-scanlines {
-    background-image: repeating-linear-gradient(
-        0deg,
-        rgba(255, 255, 255, 0.02) 0px,
-        rgba(255, 255, 255, 0.02) 1px,
-        transparent 1px,
-        transparent 3px
-      ),
-      repeating-linear-gradient(
-        90deg,
-        rgba(255, 255, 255, 0.015) 0px,
-        rgba(255, 255, 255, 0.015) 1px,
-        transparent 1px,
-        transparent 40px
-      );
+  /* ── Pure Text-Only Glitch Hover Animation ───────────────────────── */
+  .glitch-text-hover:hover .glitch-target {
+    animation: textGlitchFlicker 0.25s infinite linear;
+    color: var(--m2p-accent-bright);
   }
 
-  /* Scanline-on-focus input (spec §3 motion) */
-  .scanline-input {
-    position: relative;
-  }
-  .scanline-input:focus-within::after {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    height: 100%;
-    width: 2px;
-    background: var(--m2p-accent);
-    box-shadow: 0 0 10px var(--m2p-accent);
-    animation: scan 1.5s infinite linear;
-    pointer-events: none;
-  }
-  @keyframes scan {
-    0% { left: 0%; opacity: 0; }
-    10% { opacity: 1; }
-    90% { opacity: 1; }
-    100% { left: 100%; opacity: 0; }
+  @keyframes textGlitchFlicker {
+    0% { opacity: 1; letter-spacing: normal; transform: skewX(0deg); }
+    20% { opacity: 0.8; letter-spacing: 0.05em; transform: skewX(-3deg); color: #ff3333; }
+    40% { opacity: 1; letter-spacing: -0.02em; transform: skewX(2deg); }
+    60% { opacity: 0.85; letter-spacing: 0.08em; transform: skewX(-1deg); color: #ffffff; }
+    80% { opacity: 1; letter-spacing: normal; transform: skewX(3deg); }
+    100% { opacity: 1; letter-spacing: normal; transform: skewX(0deg); }
   }
 
-  /* Hover-sweep button (spec §3 motion) — CSS only, no JS */
-  .btn-sweep {
-    position: relative;
-    overflow: hidden;
-  }
-  .btn-sweep::after {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 60%;
-    height: 100%;
-    background: linear-gradient(
-      120deg,
-      transparent,
-      rgba(255, 255, 255, 0.15),
-      transparent
-    );
-    transition: left 0.4s ease;
-  }
-  .btn-sweep:hover::after {
-    left: 120%;
-  }
-
-  /* Tactile slider (spec §5 clip mode) */
+  /* Tactile Range Scrubber */
   input[type="range"].tactile-slider {
     -webkit-appearance: none;
     width: 100%;
@@ -163,38 +156,15 @@ body {
     -webkit-appearance: none;
     height: 24px;
     width: 4px;
-    background: var(--m2p-accent);
-    box-shadow: 0 0 10px var(--m2p-accent);
+    background: var(--m2p-text-primary);
+    box-shadow: 0 0 8px var(--m2p-text-primary);
     cursor: ew-resize;
     margin-top: -11px;
-    border-radius: 0;
   }
   input[type="range"].tactile-slider::-webkit-slider-runnable-track {
     width: 100%;
     height: 1px;
     cursor: pointer;
     background: rgba(255, 255, 255, 0.2);
-  }
-
-  /* Pixel-grid extraction animation (spec §5 extract) */
-  @keyframes pixelNoise {
-    0%, 100% { opacity: 0.85; filter: brightness(1); }
-    33% { opacity: 0.5; filter: brightness(1.2); }
-    66% { opacity: 1; filter: brightness(0.9); }
-  }
-  .pixel-active {
-    background-color: var(--m2p-accent);
-    animation: pixelNoise 0.6s infinite steps(2);
-    box-shadow: 0 0 4px var(--m2p-accent);
-  }
-  .pixel-active:nth-child(odd) {
-    animation-duration: 0.4s;
-  }
-  .pixel-active:nth-child(3n) {
-    animation-duration: 0.9s;
-  }
-  .pixel-inactive {
-    background-color: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.02);
   }
 }

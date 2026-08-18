@@ -11,23 +11,25 @@ describe('BuyB1tModal', () => {
 
   it('shows three package tiers when open', () => {
     render(<BuyB1tModal isOpen={true} onClose={vi.fn()} onPurchased={vi.fn()} />)
-    expect(screen.getByText(/100 b1t/i)).toBeInTheDocument()
-    expect(screen.getByText(/500 b1t/i)).toBeInTheDocument()
-    expect(screen.getByText(/1000 b1t/i)).toBeInTheDocument()
+    // New tiers: 100, 550, 2300 B1T$
+    expect(screen.getAllByText(/100 b1t/i).length).toBeGreaterThan(0)
+    expect(screen.getByText(/550 b1t/i)).toBeInTheDocument()
+    expect(screen.getByText(/2300 b1t/i)).toBeInTheDocument()
   })
 
   it('calls purchaseB1t and onPurchased when a tier is confirmed', async () => {
     vi.spyOn(api, 'purchaseB1t').mockResolvedValue({
       status: 'granted',
-      b1t_credited: 500,
-      message: '500 B1T$ credited (dev mode).',
+      b1t_credited: 550,
+      message: '550 B1T$ credited.',
     })
     const onPurchased = vi.fn()
     render(<BuyB1tModal isOpen={true} onClose={vi.fn()} onPurchased={onPurchased} />)
 
-    fireEvent.click(screen.getByRole('button', { name: /500 b1t/i }))
+    // Click the BROADCAST tier (550 B1T$)
+    fireEvent.click(screen.getByRole('button', { name: /broadcast/i }))
 
-    await waitFor(() => expect(onPurchased).toHaveBeenCalledWith(500))
+    await waitFor(() => expect(onPurchased).toHaveBeenCalledWith(550))
   })
 
   it('shows an error message when purchase is not yet available', async () => {
@@ -36,7 +38,7 @@ describe('BuyB1tModal', () => {
     )
     render(<BuyB1tModal isOpen={true} onClose={vi.fn()} onPurchased={vi.fn()} />)
 
-    fireEvent.click(screen.getByRole('button', { name: /100 b1t/i }))
+    fireEvent.click(screen.getByRole('button', { name: /signal/i }))
 
     expect(
       await screen.findByText(/not yet available/i),

@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>M2P - Source Input</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS Setup -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-dim": "#131313",
+                        "error-container": "#93000a",
+                        "tertiary-fixed": "#e2e2e2",
+                        "surface-tint": "#00e639",
+                        "primary-fixed": "#72ff70",
+                        "primary": "#ebffe2",
+                        "background": "#131313",
+                        "on-primary": "#003907",
+                        "surface-container-high": "#2a2a2a",
+                        "on-error": "#690005",
+                        "primary-container": "#00ff41",
+                        "secondary-fixed": "#e5e2e1",
+                        "inverse-primary": "#006e16",
+                        "on-primary-fixed": "#002203",
+                        "on-tertiary-fixed": "#1a1c1c",
+                        "on-secondary-fixed": "#1c1b1b",
+                        "secondary": "#c8c6c5",
+                        "on-secondary": "#313030",
+                        "on-error-container": "#ffdad6",
+                        "on-primary-fixed-variant": "#00530e",
+                        "surface-container-highest": "#353534",
+                        "on-tertiary-fixed-variant": "#454747",
+                        "inverse-surface": "#e5e2e1",
+                        "surface-container-lowest": "#0e0e0e",
+                        "on-surface": "#e5e2e1",
+                        "on-primary-container": "#007117",
+                        "surface-bright": "#3a3939",
+                        "tertiary": "#f9f9f9",
+                        "outline": "#84967e",
+                        "primary-fixed-dim": "#00e639",
+                        "on-secondary-container": "#b7b5b4",
+                        "secondary-container": "#474746",
+                        "surface-container": "#201f1f",
+                        "surface": "#131313",
+                        "inverse-on-surface": "#313030",
+                        "on-secondary-fixed-variant": "#474746",
+                        "surface-variant": "#353534",
+                        "secondary-fixed-dim": "#c8c6c5",
+                        "outline-variant": "#3b4b37",
+                        "error": "#ff0000",
+                        "on-tertiary": "#2f3131",
+                        "surface-container-low": "#1c1b1b",
+                        "on-surface-variant": "#b9ccb2",
+                        "tertiary-fixed-dim": "#c6c6c7",
+                        "tertiary-container": "#dcdddd",
+                        "on-tertiary-container": "#5f6161",
+                        "on-background": "#e5e2e1"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "panel-gap": "1px",
+                        "unit": "4px",
+                        "margin-edge": "32px",
+                        "gutter": "16px"
+                    },
+                    "fontFamily": {
+                        "headline-lg": ["Chivo", "sans-serif"],
+                        "data-primary": ["JetBrains Mono", "monospace"],
+                        "display-lg": ["Chivo", "sans-serif"],
+                        "data-mono": ["JetBrains Mono", "monospace"],
+                        "label-caps": ["JetBrains Mono", "monospace"],
+                        "headline-lg-mobile": ["Chivo", "sans-serif"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        /* Ambient Signal Noise Animation */
+        @keyframes signalDrift {
+            0% { background-position: 0% 0%; }
+            100% { background-position: 100% 100%; }
+        }
+        .signal-noise-bg {
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+            animation: signalDrift 30s linear infinite;
+        }
+
+        /* Input Scanline Focus Effect */
+        .scanline-input:focus-within::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 2px;
+            background: theme('colors.white');
+            box-shadow: 0 0 10px theme('colors.white');
+            animation: scan 1.5s infinite linear;
+            pointer-events: none;
+        }
+        @keyframes scan {
+            0% { left: 0%; opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { left: 100%; opacity: 0; }
+        }
+
+        /* Glass border gradient simulation */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(32px);
+            -webkit-backdrop-filter: blur(32px);
+            border: 0.5px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .glass-panel-active {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(64px);
+            -webkit-backdrop-filter: blur(64px);
+            border: 0.5px solid rgba(255, 255, 255, 0.2);
+        }
+
+        /* Ghost Button override */
+        .btn-ghost-tactical {
+            border: 0.5px solid rgba(255, 255, 255, 0.3);
+            background: transparent;
+            transition: all 0.2s ease-out;
+        }
+        .btn-ghost-tactical:hover {
+            background: rgba(255, 0, 0, 0.1);
+            border-color: theme('colors.error');
+            box-shadow: 0 0 15px rgba(255, 0, 0, 0.2) inset, 0 0 10px rgba(255, 0, 0, 0.3);
+            color: theme('colors.error');
+        }
+    </style>
+</head>
+<body class="bg-background text-white min-h-screen overflow-hidden font-data-primary text-data-primary selection:bg-white selection:text-black">
+<!-- Ambient Background -->
+<div class="fixed inset-0 z-0 pointer-events-none bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-surface-container-highest/20 to-background">
+<div class="absolute inset-0 signal-noise-bg mix-blend-overlay"></div>
+</div>
+<!-- TopAppBar (from JSON) -->
+<header class="bg-black/40 dark:bg-black/60 font-data-mono text-data-mono fixed top-0 w-full backdrop-blur-3xl border-b border-white/10 flex justify-between items-center px-margin-edge h-16 w-full z-50">
+<!-- Brand / Identity -->
+<div class="flex items-center gap-6">
+<div class="h-8 w-24 md:h-10 md:w-32 flex items-center justify-center">
+    {{DATA:DOCUMENT:DOCUMENT_2}}
+</div>
+<!-- Contextual HUD (Prompt request merged with structural integrity) -->
+<div class="hidden lg:flex items-center gap-3 px-3 py-1 bg-black/40 border border-white/10 text-label-caps font-label-caps text-white/70">
+<span class="text-white flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">fingerprint</span> IDENTITY: GUEST</span>
+<span class="w-[1px] h-3 bg-white/20"></span>
+<span>1 FREE DOWNLOAD REMAINING</span>
+</div>
+</div>
+<!-- Search Bar (on_right) & Trailing Icons -->
+<div class="flex items-center gap-4">
+<div class="relative hidden md:block w-64 group">
+<span class="material-symbols-outlined absolute left-2 top-1/2 -translate-y-1/2 text-white/50 text-[16px]">search</span>
+<input class="w-full bg-black/40 border border-white/10 text-data-mono font-data-mono text-white placeholder:text-white/50 py-1 pl-8 pr-2 focus:outline-none focus:border-white focus:bg-white/10 transition-colors" placeholder="SEARCH SIGNAL..." type="text"/>
+</div>
+<button class="text-white hover:bg-white/10 transition-all duration-300 cursor-crosshair active:scale-95 p-2 flex items-center justify-center rounded-sm">
+<span class="material-symbols-outlined">account_balance_wallet</span>
+</button>
+<button class="text-white hover:bg-white/10 transition-all duration-300 cursor-crosshair active:scale-95 p-2 flex items-center justify-center rounded-sm">
+<span class="material-symbols-outlined">account_circle</span>
+</button>
+</div>
+</header>
+<!-- SideNavBar (from JSON) -->
+<!-- active tab: "Source" based on intent "Landing State (Source Input)" -->
+<nav class="bg-black/40 dark:bg-black/40 font-data-mono text-data-mono uppercase tracking-widest fixed left-0 top-0 h-screen w-64 backdrop-blur-3xl border-r border-white/10 hidden md:flex flex-col h-full py-8 z-40 pt-20">
+<!-- Header -->
+<div class="px-6 mb-8 flex flex-col gap-1">
+<div class="flex items-center gap-2 text-white/70 mb-2">
+<span class="material-symbols-outlined text-[18px]">terminal</span>
+<span class="text-[10px] opacity-70">Terminal Identity</span>
+</div>
+<div class="font-display-lg text-white text-[20px] leading-tight break-words">SIGNAL_STRENGTH</div>
+<div class="text-[10px] text-white/80 flex items-center gap-1">
+<span class="w-2 h-2 rounded-full bg-white animate-pulse"></span>
+                100%_STABLE
+            </div>
+</div>
+<!-- Tabs -->
+<div class="flex flex-col flex-grow gap-1">
+<!-- Active: Source -->
+<a class="flex items-center gap-3 px-6 py-3 text-error border-l-2 border-error bg-error/5 transition-colors duration-200" href="#">
+<span class="material-symbols-outlined text-[18px]">radio</span>
+<span>Source</span>
+</a>
+<!-- Inactive -->
+<a class="flex items-center gap-3 px-6 py-3 text-white/60 hover:text-white hover:bg-white/5 transition-colors duration-200" href="#">
+<span class="material-symbols-outlined text-[18px]">biotech</span>
+<span>Inspect</span>
+</a>
+<a class="flex items-center gap-3 px-6 py-3 text-white/60 hover:text-white hover:bg-white/5 transition-colors duration-200" href="#">
+<span class="material-symbols-outlined text-[18px]">settings_input_component</span>
+<span>Configure</span>
+</a>
+<a class="flex items-center gap-3 px-6 py-3 text-white/60 hover:text-white hover:bg-white/5 transition-colors duration-200" href="#">
+<span class="material-symbols-outlined text-[18px]">target</span>
+<span>Extract</span>
+</a>
+<a class="flex items-center gap-3 px-6 py-3 text-white/60 hover:text-white hover:bg-white/5 transition-colors duration-200" href="#">
+<span class="material-symbols-outlined text-[18px]">send</span>
+<span>Deliver</span>
+</a>
+</div>
+<!-- CTA & Footer -->
+<div class="px-6 mt-auto flex flex-col gap-4">
+<button class="w-full py-2 border border-white/30 text-white hover:bg-white/10 hover:border-white transition-colors flex justify-center items-center gap-2 text-label-caps font-label-caps">
+                TOP UP B1T$
+            </button>
+<div class="flex gap-4 pt-4 border-t border-white/10">
+<a class="text-white/60 hover:text-white hover:bg-white/5 transition-colors duration-200 flex items-center gap-1 text-[10px]" href="#">
+<span class="material-symbols-outlined text-[14px]">description</span> Docs
+                </a>
+<a class="text-white/60 hover:text-white hover:bg-white/5 transition-colors duration-200 flex items-center gap-1 text-[10px]" href="#">
+<span class="material-symbols-outlined text-[14px]">sensors</span> Status
+                </a>
+</div>
+</div>
+</nav>
+<!-- Main Content Canvas -->
+<main class="relative z-10 h-screen w-full md:pl-64 pt-16 flex flex-col items-center justify-center p-gutter">
+<!-- Mobile HUD fallback -->
+<div class="lg:hidden absolute top-20 left-1/2 -translate-x-1/2 w-max px-3 py-1 bg-black/80 border border-white/10 text-label-caps font-label-caps text-white/70 flex items-center gap-2">
+<span class="text-white">GUEST</span> | 1 FREE
+        </div>
+<!-- Center Stage: Minimalist Glass Card -->
+<div class="w-full max-w-3xl glass-panel-active p-8 md:p-12 relative flex flex-col items-center group isolate">
+<!-- Corner Accents (Tactical HUD feel) -->
+<div class="absolute top-0 left-0 w-4 h-4 border-t-[1px] border-l-[1px] border-white/50"></div>
+<div class="absolute top-0 right-0 w-4 h-4 border-t-[1px] border-r-[1px] border-white/50"></div>
+<div class="absolute bottom-0 left-0 w-4 h-4 border-b-[1px] border-l-[1px] border-white/50"></div>
+<div class="absolute bottom-0 right-0 w-4 h-4 border-b-[1px] border-r-[1px] border-white/50"></div>
+<!-- Pipeline Subtext -->
+<div class="font-data-mono text-label-caps text-white/60 flex items-center gap-2 mb-8 tracking-[0.2em] w-full justify-center overflow-hidden">
+<span class="text-white font-bold">SOURCE</span>
+<span class="material-symbols-outlined text-[12px] opacity-50">arrow_right_alt</span>
+<span>DOWNLOAD</span>
+<span class="material-symbols-outlined text-[12px] opacity-50">arrow_right_alt</span>
+<span>PREVIEW</span>
+<span class="material-symbols-outlined text-[12px] opacity-50">arrow_right_alt</span>
+<span>EXTRACT</span>
+<span class="material-symbols-outlined text-[12px] opacity-50">arrow_right_alt</span>
+<span>DELIVER</span>
+</div>
+<!-- The Input Container -->
+<div class="w-full relative scanline-input mb-10 group/input">
+<label class="absolute -top-3 left-4 bg-background px-2 font-data-mono text-label-caps text-white z-10 shadow-[0_0_5px_theme('colors.background')]" for="source-url">
+                    PASTE MEDIA SOURCE URL
+                </label>
+<div class="relative flex items-center w-full bg-black/60 border-[0.5px] border-white/30 group-focus-within/input:border-white transition-colors duration-300">
+<div class="pl-4 pr-3 text-white/50 flex items-center justify-center">
+<span class="material-symbols-outlined">link</span>
+</div>
+<input autocomplete="off" class="w-full bg-transparent border-none text-data-primary font-data-primary text-white placeholder:text-white/30 py-5 focus:ring-0" id="source-url" placeholder="https://..." spellcheck="false" type="url"/>
+<!-- Simulated clear button -->
+<button class="pr-4 pl-3 text-white/40 hover:text-white transition-colors">
+<span class="material-symbols-outlined text-[18px]">close</span>
+</button>
+</div>
+<!-- Bottom glow line -->
+<div class="absolute bottom-0 left-0 h-[1px] w-full bg-gradient-to-r from-transparent via-white to-transparent opacity-0 group-focus-within/input:opacity-100 transition-opacity duration-500"></div>
+</div>
+<!-- Action Button -->
+<button class="btn-ghost-tactical font-data-mono text-data-primary font-bold text-white px-12 py-4 flex items-center gap-3 w-full sm:w-auto justify-center group/btn relative overflow-hidden">
+<span class="material-symbols-outlined group-hover/btn:animate-pulse">radar</span>
+                INITIATE INSPECTION
+                
+                <!-- Subtle background sweeping effect on hover -->
+<div class="absolute inset-0 bg-gradient-to-r from-transparent via-error/10 to-transparent -translate-x-full group-hover/btn:translate-x-full transition-transform duration-1000 ease-in-out pointer-events-none"></div>
+</button>
+<!-- Decorative data readout -->
+<div class="absolute bottom-4 right-4 font-data-mono text-[8px] text-white/30 text-right">
+                SYS.REQ: 0x8A7B<br/>
+                AWT: RDY
+            </div>
+</div>
+</main>
+</body></html>

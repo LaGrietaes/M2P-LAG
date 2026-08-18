@@ -3,15 +3,16 @@ import { Logo } from "../components/Logo";
 import { UrlInput } from "../components/UrlInput";
 import { SourceCard } from "../features/source/SourceCard";
 import { ClipEditor } from "../features/extractor/ClipEditor";
-import { AuthStatus } from "../components/AuthStatus";
 import { DevModeToggle } from "../components/DevModeToggle";
 import { isDevModeAvailable } from "../lib/devMode";
+import { useDevMode } from "../lib/devMode";
 import { ProgressRail } from "../components/ProgressRail";
 import { BuyB1tModal } from "../components/BuyB1tModal";
 import { ExtractionProgress } from "../components/ExtractionProgress";
 import { DeliverPanel } from "../components/DeliverPanel";
-import { ThemeToggle } from "../components/ui/ThemeToggle";
-import { Panel } from "../components/ui/Panel";
+import { HeaderHUD } from "../components/HeaderHUD";
+import { AmbientBackground } from "../components/AmbientBackground";
+import { LaGrietaFooter } from "../components/LaGrietaFooter";
 import { useMutation } from "@tanstack/react-query";
 import { extractClip, downloadSource, getQuota } from "../lib/api";
 import type { InspectResponse, ExtractResponse, QuotaResponse } from "../types";
@@ -21,12 +22,12 @@ type ViewState = "input" | "source" | "configure" | "extracting" | "result";
 export default function Landing() {
   const [view, setView] = useState<ViewState>("input");
   const [media, setMedia] = useState<InspectResponse | null>(null);
-  const [extractResult, setExtractResult] = useState<ExtractResponse | null>(
-    null,
-  );
+  const [extractResult, setExtractResult] = useState<ExtractResponse | null>(null);
   const [quota, setQuota] = useState<QuotaResponse | null>(null);
   const [isBuyModalOpen, setIsBuyModalOpen] = useState(false);
   const [selectedFormatId, setSelectedFormatId] = useState<string | null>(null);
+
+  const { isDeveloper } = useDevMode();
 
   useEffect(() => {
     getQuota()
@@ -41,9 +42,6 @@ export default function Landing() {
       setView("result");
     },
     onError: () => {
-      // Otherwise the user is stranded on ExtractionProgress, which reads
-      // "not pending" as success and shows a false EXTRACTION COMPLETE/100%
-      // with no visible error (spec §5 blocked/failed states).
       setView("configure");
     },
   });
@@ -53,15 +51,11 @@ export default function Landing() {
     onSuccess: (data) => {
       setExtractResult(data);
       setView("result");
-      getQuota()
-        .then(setQuota)
-        .catch(() => {});
+      getQuota().then(setQuota).catch(() => {});
     },
     onError: () => {
       setView("configure");
-      getQuota()
-        .then(setQuota)
-        .catch(() => {});
+      getQuota().then(setQuota).catch(() => {});
     },
   });
 
@@ -98,18 +92,9 @@ export default function Landing() {
     setView("input");
   };
 
-  const handleBackToSource = () => {
-    setView("source");
-  };
+  const handleBackToSource = () => setView("source");
+  const handleConfigure = () => setView("configure");
 
-  const handleConfigure = () => {
-    setView("configure");
-  };
-
-  // Only claim a badge state once real quota data has arrived. While
-  // `quota` is null (not yet loaded, or the fetch failed) we don't know
-  // the user's role or free-download status, so render nothing rather
-  // than defaulting to "available".
   const freeDownloadBadge =
     quota && quota.role === "guest"
       ? quota.free_download_used
@@ -120,212 +105,173 @@ export default function Landing() {
   const isExtracting = extractMutation.isPending || downloadMutation.isPending;
 
   return (
-    <div className="min-h-screen bg-background text-text-primary hud-scanlines">
-      <div className="flex min-h-screen">
-        {/* Persistent sidebar (spec §4) */}
-        <aside className="hidden md:flex flex-col w-56 border-r border-border-subtle bg-surface/40 backdrop-blur-3xl p-4 gap-6 shrink-0">
-          <div className="flex items-center gap-2 px-2">
-            <Logo className="w-8 h-8" />
-            <span className="font-display font-black tracking-tight text-lg">
-              M2P
-            </span>
-          </div>
-          <ProgressRail current={view} />
-          <div className="mt-auto space-y-4">
-            <AuthStatus />
-            <button
-              onClick={() => setIsBuyModalOpen(true)}
-              className="w-full px-3 py-2 text-xs font-mono font-bold tracking-widest uppercase text-text-primary border border-border-subtle hover:bg-surface-elevated transition-colors"
-            >
-              Buy B1T$
-            </button>
-            <ThemeToggle />
-          </div>
-        </aside>
+    <div className="relative min-h-screen bg-[#040508] text-white">
+      {/* Dynamic CRT ambient background */}
+      <AmbientBackground
+        thumbnailUrl={media?.thumbnail}
+        stage={view}
+      />
 
-        {/* Main content */}
-        <main className="flex-1 flex flex-col items-center px-4 py-8">
-          <div className="w-full max-w-5xl">
-            {/* Mobile top bar */}
-            <div className="md:hidden flex items-center justify-between mb-6">
-              <div className="flex items-center gap-2">
-                <Logo className="w-8 h-8" />
-                <span className="font-display font-black tracking-tight">
-                  M2P
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <ThemeToggle />
-                <button
-                  onClick={() => setIsBuyModalOpen(true)}
-                  className="px-3 py-1 text-xs font-mono font-bold tracking-widest uppercase text-text-primary border border-border-subtle hover:bg-surface-elevated transition-colors"
-                >
-                  Buy B1T$
-                </button>
+      {/* Fixed header HUD */}
+      <HeaderHUD quota={quota} onOpenBuyModal={() => setIsBuyModalOpen(true)} />
+
+      {/* Progress breadcrumb rail */}
+      <div className="relative z-10 border-b border-border-subtle">
+        <ProgressRail current={view} orientation="horizontal" />
+      </div>
+
+      {/* Main content area */}
+      <main className="relative z-10 w-full max-w-6xl mx-auto px-4 sm:px-8 py-8 pb-20">
+
+        {/* ─── STAGE: INPUT ─────────────────────────────────────────── */}
+        {view === "input" && (
+          <div className="min-h-[calc(100vh-12rem)] flex flex-col items-center justify-center gap-12">
+            {/* Hero */}
+            <div className="text-center">
+              <Logo className="w-16 h-16 mx-auto mb-6 opacity-90" />
+              <h1 className="font-display font-black text-5xl sm:text-7xl tracking-tighter text-white mb-3">
+                M2P
+              </h1>
+              <p className="font-mono text-sm text-text-secondary tracking-[0.2em] uppercase">
+                Media 2 Peer · Tactical Extraction System
+              </p>
+            </div>
+
+            {/* URL Input panel */}
+            <div className="w-full max-w-2xl relative">
+              <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-accent-bright pointer-events-none" />
+              <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-accent-bright pointer-events-none" />
+              <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-accent-bright pointer-events-none" />
+              <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-accent-bright pointer-events-none" />
+              <div className="bg-surface/80 border border-border-subtle p-8 backdrop-blur-xl">
+                <p className="font-mono text-label-caps text-text-secondary tracking-widest mb-6 uppercase">
+                  01 // INJECT SOURCE URL
+                </p>
+                <UrlInput onInspectSuccess={handleInspectSuccess} />
               </div>
             </div>
 
-            {view === "input" ? (
-              <div className="text-center mb-12 relative corner-brackets py-8">
-                <Logo className="w-24 h-24 mx-auto mb-4" />
-                <h1 className="font-display font-black text-5xl tracking-tight mb-1">
-                  M2P
-                </h1>
-                <p className="text-xl text-text-secondary">
-                  Media Server 2 Peer
-                </p>
+            {/* Role info */}
+            <div className="w-full max-w-2xl grid grid-cols-2 gap-px bg-border-subtle">
+              <div className="bg-[#040508] px-5 py-4">
+                <p className="font-mono text-label-caps text-accent tracking-widest mb-1">GUEST</p>
+                <p className="font-mono text-xs text-text-secondary">20s clip · 1 free full download</p>
               </div>
-            ) : (
-              <div className="flex items-center justify-between mb-6 pb-4 border-b border-border-subtle">
-                <div className="flex items-center gap-3">
-                  <Logo className="w-8 h-8" />
-                  <span className="font-display font-black tracking-tight text-lg">
-                    M2P
-                  </span>
-                </div>
+              <div className="bg-[#040508] px-5 py-4">
+                <p className="font-mono text-label-caps text-white tracking-widest mb-1">REGISTERED</p>
+                <p className="font-mono text-xs text-text-secondary">Unlimited extraction · gated by B1T$</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ─── STAGE: SOURCE (INSPECT) ──────────────────────────────── */}
+        {view === "source" && media && (
+          <div className="space-y-6">
+            <button
+              onClick={handleBackToInput}
+              className="font-mono text-xs text-text-secondary hover:text-white tracking-wider uppercase transition-colors"
+            >
+              ← NEW SOURCE
+            </button>
+            <SourceCard
+              media={media}
+              onExtract={handleConfigure}
+              onPreview={() => {}}
+              onDownloadSource={handleDownloadSource}
+              freeDownloadBadge={freeDownloadBadge}
+            />
+            {downloadMutation.isError && (
+              <div className="p-3 text-sm font-mono text-accent-error bg-accent-error/10 border border-accent-error/40">
+                {downloadMutation.error instanceof Error
+                  ? downloadMutation.error.message
+                  : "Download failed. Please try again."}
               </div>
             )}
+          </div>
+        )}
 
-            {view === "input" && (
-              <div className="space-y-12">
-                <div className="text-center">
-                  <Panel variant="active" className="p-8 max-w-2xl mx-auto relative corner-brackets">
-                    {/* Pipeline breadcrumb (spec §5) */}
-                    <div className="font-mono text-label-caps text-text-secondary flex items-center gap-2 mb-8 tracking-[0.2em] w-full justify-center">
-                      <span className="text-accent font-bold">SOURCE</span>
-                      <span className="opacity-50">→</span>
-                      <span>DOWNLOAD</span>
-                      <span className="opacity-50">→</span>
-                      <span>PREVIEW</span>
-                      <span className="opacity-50">→</span>
-                      <span>EXTRACT</span>
-                      <span className="opacity-50">→</span>
-                      <span>DELIVER</span>
-                    </div>
-                    <UrlInput onInspectSuccess={handleInspectSuccess} />
-                  </Panel>
-                </div>
-                <div className="text-center space-y-4 text-text-secondary">
-                  <p className="text-lg">
-                    Extract what you need. Take it to your workflow.
-                  </p>
-                  <div className="space-y-2 font-mono text-xs">
-                    <p>
-                      <span className="text-accent font-medium">GUEST:</span>{" "}
-                      20s clip extraction, always free. Plus one free unlimited
-                      full download.
-                    </p>
-                    <p>
-                      <span className="text-accent font-medium">
-                        REGISTERED:
-                      </span>{" "}
-                      Unlimited extraction, gated by B1T$ balance.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {view === "source" && media && (
-              <div className="space-y-6">
-                <button
-                  onClick={handleBackToInput}
-                  className="text-sm text-text-secondary hover:text-text-primary font-mono"
-                >
-                  {"\u2190"} Back to URL input
-                </button>
+        {/* ─── STAGE: CONFIGURE ─────────────────────────────────────── */}
+        {view === "configure" && media && (
+          <div className="space-y-6">
+            <button
+              onClick={handleBackToSource}
+              className="font-mono text-xs text-text-secondary hover:text-white tracking-wider uppercase transition-colors"
+            >
+              ← BACK TO INSPECT
+            </button>
+            <div className="grid grid-cols-1 md:grid-cols-8 gap-4 items-start">
+              <div className="md:col-span-5">
                 <SourceCard
                   media={media}
                   onExtract={handleConfigure}
-                  onPreview={() => console.log("Preview clicked")}
+                  onPreview={() => {}}
                   onDownloadSource={handleDownloadSource}
                   freeDownloadBadge={freeDownloadBadge}
                 />
-                {downloadMutation.isError && (
-                  <div className="p-3 text-sm text-accent-error bg-accent-error/10 border border-accent-error/40">
-                    {downloadMutation.error instanceof Error
-                      ? downloadMutation.error.message
-                      : "Download failed. Please try again."}
-                  </div>
-                )}
+              </div>
+              <div className="md:col-span-3">
+                <ClipEditor
+                  media={media}
+                  onExtract={handleExtract}
+                  isExtracting={isExtracting}
+                  maxClipSeconds={
+                    !isDeveloper && quota?.role === "guest"
+                      ? (quota.max_clip_seconds ?? 20)
+                      : null
+                  }
+                  selectedFormatId={selectedFormatId}
+                  onSelectFormat={setSelectedFormatId}
+                  b1tBalance={isDeveloper ? Infinity : (quota?.b1t_balance ?? null)}
+                />
+              </div>
+            </div>
+            {extractMutation.isError && (
+              <div className="p-3 text-sm font-mono text-accent-error bg-accent-error/10 border border-accent-error/40">
+                {extractMutation.error instanceof Error
+                  ? extractMutation.error.message
+                  : "Extraction failed. Please try again."}
               </div>
             )}
-
-            {view === "configure" && media && (
-              <div className="space-y-6">
-                <button
-                  onClick={handleBackToSource}
-                  className="text-sm text-text-secondary hover:text-text-primary font-mono"
-                >
-                  {"\u2190"} Back to source
-                </button>
-                <div className="grid grid-cols-1 md:grid-cols-8 gap-4 items-start">
-                  <div className="md:col-span-5">
-                    <SourceCard
-                      media={media}
-                      onExtract={handleConfigure}
-                      onPreview={() => console.log("Preview clicked")}
-                      onDownloadSource={handleDownloadSource}
-                      freeDownloadBadge={freeDownloadBadge}
-                    />
-                  </div>
-                  <div className="md:col-span-3">
-                    <ClipEditor
-                      media={media}
-                      onExtract={handleExtract}
-                      isExtracting={isExtracting}
-                      maxClipSeconds={
-                        quota?.role === "guest"
-                          ? (quota.max_clip_seconds ?? 20)
-                          : null
-                      }
-                      selectedFormatId={selectedFormatId}
-                      onSelectFormat={setSelectedFormatId}
-                      b1tBalance={quota?.b1t_balance ?? null}
-                    />
-                  </div>
-                </div>
-                {extractMutation.isError && (
-                  <div className="p-3 text-sm text-accent-error bg-accent-error/10 border border-accent-error/40">
-                    {extractMutation.error instanceof Error
-                      ? extractMutation.error.message
-                      : "Extraction failed. Please try again."}
-                  </div>
-                )}
-                {downloadMutation.isError && (
-                  <div className="p-3 text-sm text-accent-error bg-accent-error/10 border border-accent-error/40">
-                    {downloadMutation.error instanceof Error
-                      ? downloadMutation.error.message
-                      : "Download failed. Please try again."}
-                  </div>
-                )}
+            {downloadMutation.isError && (
+              <div className="p-3 text-sm font-mono text-accent-error bg-accent-error/10 border border-accent-error/40">
+                {downloadMutation.error instanceof Error
+                  ? downloadMutation.error.message
+                  : "Download failed. Please try again."}
               </div>
-            )}
-
-            {view === "extracting" && (
-              <ExtractionProgress isPending={isExtracting} />
-            )}
-
-            {view === "result" && extractResult && (
-              <DeliverPanel
-                extractResult={extractResult}
-                onRestart={handleBackToInput}
-              />
             )}
           </div>
-        </main>
-      </div>
+        )}
+
+        {/* ─── STAGE: EXTRACTING ────────────────────────────────────── */}
+        {view === "extracting" && (
+          <ExtractionProgress isPending={isExtracting} />
+        )}
+
+        {/* ─── STAGE: RESULT ────────────────────────────────────────── */}
+        {view === "result" && extractResult && (
+          <DeliverPanel
+            extractResult={extractResult}
+            onRestart={handleBackToInput}
+          />
+        )}
+      </main>
+
+      {/* Dev mode toggle */}
       {isDevModeAvailable && <DevModeToggle />}
+
+      {/* Buy B1T$ modal */}
       <BuyB1tModal
         isOpen={isBuyModalOpen}
         onClose={() => setIsBuyModalOpen(false)}
         onPurchased={() => {
           setIsBuyModalOpen(false);
-          getQuota()
-            .then(setQuota)
-            .catch(() => {});
+          getQuota().then(setQuota).catch(() => {});
         }}
       />
+
+      {/* Persistent LaGrieta footer pill */}
+      <LaGrietaFooter />
     </div>
   );
 }

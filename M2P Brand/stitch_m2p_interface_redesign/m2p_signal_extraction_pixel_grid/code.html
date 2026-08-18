@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>M2P Extraction State</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Chivo:wght@800;900&amp;family=JetBrains+Mono:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "surface-dim": "#131313",
+                      "error-container": "#93000a",
+                      "tertiary-fixed": "#e2e2e2",
+                      "surface-tint": "#00e639",
+                      "primary-fixed": "#72ff70",
+                      "primary": "#ebffe2",
+                      "background": "#131313",
+                      "on-primary": "#003907",
+                      "surface-container-high": "#2a2a2a",
+                      "on-error": "#690005",
+                      "primary-container": "#00ff41",
+                      "secondary-fixed": "#e5e2e1",
+                      "inverse-primary": "#006e16",
+                      "on-primary-fixed": "#002203",
+                      "on-tertiary-fixed": "#1a1c1c",
+                      "on-secondary-fixed": "#1c1b1b",
+                      "secondary": "#c8c6c5",
+                      "on-secondary": "#313030",
+                      "on-error-container": "#ffdad6",
+                      "on-primary-fixed-variant": "#00530e",
+                      "surface-container-highest": "#353534",
+                      "on-tertiary-fixed-variant": "#454747",
+                      "inverse-surface": "#e5e2e1",
+                      "surface-container-lowest": "#0e0e0e",
+                      "on-surface": "#e5e2e1",
+                      "on-primary-container": "#007117",
+                      "surface-bright": "#3a3939",
+                      "tertiary": "#f9f9f9",
+                      "outline": "#84967e",
+                      "primary-fixed-dim": "#00e639",
+                      "on-secondary-container": "#b7b5b4",
+                      "secondary-container": "#474746",
+                      "surface-container": "#201f1f",
+                      "surface": "#131313",
+                      "inverse-on-surface": "#313030",
+                      "on-secondary-fixed-variant": "#474746",
+                      "surface-variant": "#353534",
+                      "secondary-fixed-dim": "#c8c6c5",
+                      "outline-variant": "#3b4b37",
+                      "error": "#ffb4ab",
+                      "on-tertiary": "#2f3131",
+                      "surface-container-low": "#1c1b1b",
+                      "on-surface-variant": "#b9ccb2",
+                      "tertiary-fixed-dim": "#c6c6c7",
+                      "tertiary-container": "#dcdddd",
+                      "on-tertiary-container": "#5f6161",
+                      "on-background": "#e5e2e1"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "panel-gap": "1px",
+                      "unit": "4px",
+                      "margin-edge": "32px",
+                      "gutter": "16px"
+              },
+              "fontFamily": {
+                      "headline-lg": ["Chivo", "sans-serif"],
+                      "data-primary": ["JetBrains Mono", "monospace"],
+                      "display-lg": ["Chivo", "sans-serif"],
+                      "data-mono": ["JetBrains Mono", "monospace"],
+                      "label-caps": ["JetBrains Mono", "monospace"],
+                      "headline-lg-mobile": ["Chivo", "sans-serif"]
+              },
+              "fontSize": {
+                      "headline-lg": ["32px", { "lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "800" }],
+                      "data-primary": ["16px", { "lineHeight": "1.5", "letterSpacing": "-0.01em", "fontWeight": "500" }],
+                      "display-lg": ["72px", { "lineHeight": "72px", "letterSpacing": "-0.04em", "fontWeight": "900" }],
+                      "data-mono": ["12px", { "lineHeight": "1.4", "letterSpacing": "0.05em", "fontWeight": "400" }],
+                      "label-caps": ["10px", { "lineHeight": "1.0", "letterSpacing": "0.1em", "fontWeight": "700" }],
+                      "headline-lg-mobile": ["24px", { "lineHeight": "1.2", "fontWeight": "800" }]
+              }
+            }
+          }
+        }
+    </script>
+<style>
+        .material-symbols-outlined { font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        
+        /* CRT Noise Overlay - Without Data URIs */
+        .crt-overlay {
+            background-color: rgba(0,0,0,0.1);
+            pointer-events: none;
+            box-shadow: inset 0 0 100px rgba(0,0,0,0.8);
+        }
+
+        /* Ambient Light Leaks */
+        .light-leak {
+            background: radial-gradient(circle at 50% 50%, rgba(255,0,0,0.1) 0%, rgba(0,0,0,0) 60%);
+        }
+
+        /* Glassmorphism Borders */
+        .glass-border {
+            border: 0.5px solid rgba(255,255,255,0.1);
+            background-color: rgba(255,255,255,0.02);
+        }
+        
+        /* Bitstream Animation */
+        @keyframes scrollData {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-50%); }
+        }
+        .animate-bitstream {
+            animation: scrollData 20s linear infinite;
+        }
+
+        /* Pulse Text */
+        @keyframes pulseGlow {
+            0%, 100% { text-shadow: 0 0 10px rgba(255,255,255,0.8); opacity: 1; }
+            50% { text-shadow: 0 0 20px rgba(255,255,255,0.4); opacity: 0.8; }
+        }
+        .text-pulse-glow {
+            animation: pulseGlow 2s ease-in-out infinite;
+        }
+
+        /* Tactical Pixel Grid Animations */
+        @keyframes pixelNoise {
+            0%, 100% { opacity: 0.85; filter: brightness(1); }
+            33% { opacity: 0.5; filter: brightness(1.2); }
+            66% { opacity: 1; filter: brightness(0.9); }
+        }
+        .pixel-active {
+            background-color: #ef4444; /* Design system accent red */
+            animation: pixelNoise 0.6s infinite steps(2);
+            box-shadow: 0 0 4px rgba(239, 68, 68, 0.5);
+        }
+        .pixel-active:nth-child(odd) {
+            animation-duration: 0.4s;
+        }
+        .pixel-active:nth-child(3n) {
+            animation-duration: 0.9s;
+        }
+        .pixel-inactive {
+            background-color: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.02);
+        }
+    </style>
+</head>
+<body class="bg-background text-white flex h-screen overflow-hidden antialiased">
+<!-- Ambient Background Effects -->
+<div class="absolute inset-0 z-0 pointer-events-none light-leak mix-blend-screen opacity-50"></div>
+<div class="absolute inset-0 z-0 pointer-events-none crt-overlay mix-blend-overlay"></div>
+<!-- SideNavBar (from JSON, hidden md:flex layout structural command inferred) -->
+<nav class="hidden md:flex flex-col h-full py-8 bg-white/10 dark:bg-surface-container-lowest/12 border-r border-white/10 w-64 z-40 relative backdrop-blur-3xl shrink-0 font-data-mono text-data-mono uppercase tracking-widest transition-colors duration-200">
+<!-- Header -->
+<div class="px-gutter mb-8 flex flex-col gap-unit">
+<div class="h-12 w-12 rounded-full overflow-hidden glass-border mb-2 relative">
+<img alt="User Terminal Identity" class="w-full h-full object-cover" data-alt="A highly detailed, futuristic wireframe representation of a terminal user identity, rendered in glowing green lines on a pitch black background. Minimalist, high-contrast, technical diagram aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDOf9nwgcU_Yo8vl-Yt024tFHTs8FRd88NiLRCkyQqsUGbpKthEb7acrbvFm69TZ2VnP5N5BKdtD2Wmd5kVh98brpr_F7zzw7zvd7_Qso4_eQJOtEdH5aPwvQ-xJtxy-t4Eaw-cM31kTQFF1VHrY0YgaFOB7Ox9uHDHtxnvo6sufHRRR0VDFWrSbEgg8hGpq2QfwvVrnHluvgZYLd3P1Xk9rdF0k3_7gACw-A3js3T_YcWUTVik9IAC9Q"/>
+<div class="absolute inset-0 bg-white/10 mix-blend-color"></div>
+</div>
+<div class="font-headline-lg-mobile text-white tracking-tighter truncate font-black">SIGNAL_STRENGTH</div>
+<div class="text-on-surface-variant opacity-80 text-[10px]">100%_STABLE</div>
+</div>
+<!-- Main Tabs -->
+<div class="flex-1 flex flex-col gap-panel-gap">
+<a class="px-gutter py-3 flex items-center gap-3 text-on-surface-variant opacity-60 hover:text-white hover:bg-white/5 transition-all duration-300" href="#">
+<span class="material-symbols-outlined text-[18px]">radio</span>
+<span>Source</span>
+</a>
+<a class="px-gutter py-3 flex items-center gap-3 text-on-surface-variant opacity-60 hover:text-white hover:bg-white/5 transition-all duration-300" href="#">
+<span class="material-symbols-outlined text-[18px]">biotech</span>
+<span>Inspect</span>
+</a>
+<a class="px-gutter py-3 flex items-center gap-3 text-on-surface-variant opacity-60 hover:text-white hover:bg-white/5 transition-all duration-300" href="#">
+<span class="material-symbols-outlined text-[18px]">settings_input_component</span>
+<span>Configure</span>
+</a>
+<!-- ACTIVE TAB: Extract -->
+<a class="px-gutter py-3 flex items-center gap-3 text-red-500 border-l-2 border-red-500 bg-white/5 hover:bg-white/5 transition-all duration-300" href="#">
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">target</span>
+<span class="font-bold">Extract</span>
+</a>
+<a class="px-gutter py-3 flex items-center gap-3 text-on-surface-variant opacity-60 hover:text-white hover:bg-white/5 transition-all duration-300" href="#">
+<span class="material-symbols-outlined text-[18px]">send</span>
+<span>Deliver</span>
+</a>
+</div>
+<!-- Footer / CTA -->
+<div class="px-gutter mt-auto flex flex-col gap-unit">
+<button class="w-full py-2 mb-4 glass-border hover:bg-white/10 text-white font-data-mono text-data-mono transition-all duration-200">
+                TOP UP B1T$
+            </button>
+<a class="flex items-center gap-3 py-2 text-on-surface-variant opacity-60 hover:text-white hover:bg-white/5 transition-all duration-300" href="#">
+<span class="material-symbols-outlined text-[16px]">description</span>
+<span>Docs</span>
+</a>
+<a class="flex items-center gap-3 py-2 text-on-surface-variant opacity-60 hover:text-white hover:bg-white/5 transition-all duration-300" href="#">
+<span class="material-symbols-outlined text-[16px]">sensors</span>
+<span>Status</span>
+</a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<div class="flex-1 flex flex-col h-full relative z-10 overflow-hidden w-full">
+<!-- TopAppBar (from JSON) -->
+<header class="flex justify-between items-center px-margin-edge h-16 w-full z-50 bg-white/10 dark:bg-surface-container/10 backdrop-blur-3xl border-b border-white/20 shadow-[0_0_10px_rgba(255,255,255,0.1)] font-data-mono text-data-mono cursor-crosshair">
+<!-- Brand -->
+<div class="w-32 hover:bg-white/5 transition-all duration-300 px-2 py-1 rounded">
+                {{DATA:DOCUMENT:DOCUMENT_2}}
+            </div>
+<!-- Trailing Icons -->
+<div class="flex items-center gap-4">
+<button class="text-on-surface-variant hover:bg-white/5 transition-all duration-300 p-2 rounded active:scale-95">
+<span class="material-symbols-outlined text-[20px]">account_balance_wallet</span>
+</button>
+<button class="text-on-surface-variant hover:bg-white/5 transition-all duration-300 p-2 rounded active:scale-95">
+<span class="material-symbols-outlined text-[20px]">account_circle</span>
+</button>
+</div>
+</header>
+<!-- Extraction Progress Canvas -->
+<main class="flex-1 p-margin-edge grid grid-cols-1 md:grid-cols-12 gap-unit relative z-0 h-full overflow-hidden">
+<!-- Left Panel: Raw Bitstream (Hidden on mobile for focus) -->
+<div class="hidden md:flex col-span-3 border-r border-white/10 pr-gutter flex-col relative overflow-hidden h-full">
+<div class="text-white font-label-caps mb-4 flex justify-between border-b border-white/10 pb-2">
+<span>RAW_STREAM_IN</span>
+<span class="material-symbols-outlined text-[12px] animate-pulse">download</span>
+</div>
+<!-- Animated Log Container -->
+<div class="flex-1 overflow-hidden relative glass-border bg-black/20 p-2">
+<div class="absolute inset-0 bg-gradient-to-b from-surface-dim via-transparent to-surface-dim z-10 pointer-events-none"></div>
+<div class="animate-bitstream font-data-mono text-[10px] text-on-surface-variant/70 leading-tight space-y-1 text-right" id="bitstream-container">
+<!-- JS populated content -->
+</div>
+</div>
+</div>
+<!-- Central Focus: The Gauge & Status -->
+<div class="col-span-1 md:col-span-6 flex flex-col items-center justify-center relative h-full">
+<!-- Status Title -->
+<div class="absolute top-10 flex flex-col items-center gap-2">
+<div class="font-label-caps text-on-surface-variant tracking-[0.2em] opacity-80 flex items-center gap-2">
+<span class="w-2 h-2 bg-red-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(255,0,0,0.8)]"></span>
+                        SYSTEM ACTIVE
+                    </div>
+<h1 class="font-display-lg text-white text-pulse-glow text-center whitespace-nowrap">
+                        EXTRACTING SIGNAL...
+                    </h1>
+</div>
+<!-- Central Tactical Pixel Grid -->
+<div class="relative w-[320px] sm:w-[450px] md:w-[500px] aspect-video flex items-center justify-center mt-12 glass-border p-1 bg-black/40 backdrop-blur-xl">
+<div class="w-full h-full grid grid-cols-10 grid-rows-10 gap-[1px]" id="pixel-grid">
+<!-- JS will populate the 100 pixels -->
+</div>
+<!-- Percentage Readout Overlay -->
+<div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-10">
+<span class="font-display-lg text-white drop-shadow-[0_0_15px_rgba(0,0,0,0.9)]" id="progress-text" style="font-size: 64px; line-height: 1;">78<span class="text-3xl opacity-80">%</span></span>
+<span class="font-data-mono text-white/90 text-[10px] mt-2 bg-black/60 px-3 py-1 rounded backdrop-blur-sm border border-white/10">VOLATILE_MEMORY_ALLOCATED</span>
+</div>
+</div>
+<!-- Bottom Stats Bar -->
+<div class="absolute bottom-10 w-full max-w-md grid grid-cols-2 gap-panel-gap">
+<div class="glass-border bg-white/[0.02] backdrop-blur-sm p-4 flex flex-col justify-between h-20">
+<span class="font-label-caps text-on-surface-variant opacity-60">SPEED</span>
+<div class="font-data-primary text-white text-right flex items-end justify-end gap-1">
+<span class="text-2xl font-bold" id="speed-val">45</span>
+<span class="text-sm pb-1">MB/S</span>
+</div>
+</div>
+<div class="glass-border bg-white/[0.02] backdrop-blur-sm p-4 flex flex-col justify-between h-20">
+<span class="font-label-caps text-on-surface-variant opacity-60">TASKS ACTIVE</span>
+<div class="font-data-mono text-white text-right text-[11px] leading-tight flex flex-col items-end opacity-80">
+<span>&gt; DOWNLOAD [OK]</span>
+<span class="animate-pulse text-red-500">&gt; CUT [WAIT]</span>
+<span>&gt; TRANSCODE [WAIT]</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Panel: Processing Events (Hidden on mobile) -->
+<div class="hidden md:flex col-span-3 border-l border-white/10 pl-gutter flex-col relative h-full">
+<div class="text-white font-label-caps mb-4 flex justify-between border-b border-white/10 pb-2">
+<span>SYS_EVENTS</span>
+<span class="material-symbols-outlined text-[12px]">terminal</span>
+</div>
+<div class="flex-1 overflow-y-auto space-y-2 pr-2" style="scrollbar-width: none;">
+<!-- Static simulated events -->
+<div class="glass-border p-2 bg-white/[0.01]">
+<div class="flex justify-between text-[10px] font-data-mono opacity-50 mb-1">
+<span>0xA1F4</span>
+<span>[INFO]</span>
+</div>
+<div class="font-data-primary text-[12px] text-white">Buffer allocated successfully.</div>
+</div>
+<div class="glass-border p-2 bg-red-900/20 border-l-2 border-l-red-500">
+<div class="flex justify-between text-[10px] font-data-mono text-red-500 opacity-80 mb-1">
+<span>0x88B2</span>
+<span>[WARN]</span>
+</div>
+<div class="font-data-primary text-[12px] text-red-400">Signal fluctuation detected. Compensating phase drift.</div>
+</div>
+<div class="glass-border p-2 bg-white/[0.01]">
+<div class="flex justify-between text-[10px] font-data-mono opacity-50 mb-1">
+<span>0xC399</span>
+<span>[INFO]</span>
+</div>
+<div class="font-data-primary text-[12px] text-white">Decrypting payload chunk #0045...</div>
+</div>
+<div class="glass-border p-2 bg-white/[0.01]">
+<div class="flex justify-between text-[10px] font-data-mono opacity-50 mb-1">
+<span>0xD11A</span>
+<span>[INFO]</span>
+</div>
+<div class="font-data-primary text-[12px] text-white">Handshake established with target origin.</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+<script>
+        // 1. Bitstream Generator
+        const bitstreamContainer = document.getElementById('bitstream-container');
+        if (bitstreamContainer) {
+            let content = '';
+            for(let i=0; i<100; i++) {
+                const hex1 = Math.floor(Math.random()*16777215).toString(16).toUpperCase().padStart(6, '0');
+                const hex2 = Math.floor(Math.random()*16777215).toString(16).toUpperCase().padStart(6, '0');
+                const val = (Math.random() > 0.5) ? '1' : '0';
+                content += `<div>0x${hex1} <span class="opacity-50">...</span> 0x${hex2} [${val}]</div>`;
+            }
+            bitstreamContainer.innerHTML = content + content;
+        }
+
+        // 2. Pixel Grid Initialization and Update
+        const pixelGrid = document.getElementById('pixel-grid');
+        if (pixelGrid) {
+            for(let i = 0; i < 100; i++) {
+                const pixel = document.createElement('div');
+                pixel.className = 'pixel-inactive';
+                pixelGrid.appendChild(pixel);
+            }
+        }
+        
+        const speedVal = document.getElementById('speed-val');
+        const progressText = document.getElementById('progress-text');
+        
+        let currentProgress = 78;
+        
+        function updateProgressDisplay(displayProg) {
+            if(progressText) {
+                progressText.innerHTML = `${displayProg}<span class="text-3xl opacity-50">%</span>`;
+            }
+            
+            if(pixelGrid) {
+                const pixels = pixelGrid.children;
+                for(let i = 0; i < pixels.length; i++) {
+                    if (i < displayProg) {
+                        if (!pixels[i].classList.contains('pixel-active')) {
+                            pixels[i].className = 'pixel-active';
+                        }
+                    } else {
+                        if (!pixels[i].classList.contains('pixel-inactive')) {
+                            pixels[i].className = 'pixel-inactive';
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Initial setup
+        updateProgressDisplay(Math.floor(currentProgress));
+        
+        setInterval(() => {
+            // Fluctuate speed slightly
+            const baseSpeed = 45;
+            const variance = Math.floor(Math.random() * 10) - 4;
+            if(speedVal) speedVal.innerText = baseSpeed + variance;
+
+            // Slowly increment progress
+            if(Math.random() > 0.3 && currentProgress < 99.5) {
+                currentProgress += (Math.random() * 0.5);
+                const displayProg = Math.floor(currentProgress);
+                updateProgressDisplay(displayProg);
+            }
+        }, 1000);
+    </script>
+</body></html>

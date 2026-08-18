@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>M2P Delivery</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Chivo:wght@800;900&amp;family=JetBrains+Mono:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration -->
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+                "surface-tint": "#00e639",
+                "inverse-on-surface": "#313030",
+                "on-tertiary": "#2f3131",
+                "tertiary": "#f9f9f9",
+                "surface-bright": "#3a3939",
+                "on-surface-variant": "#b9ccb2",
+                "secondary-fixed": "#e5e2e1",
+                "on-primary-container": "#007117",
+                "surface-container-high": "#2a2a2a",
+                "on-error-container": "#ffdad6",
+                "surface-container": "#201f1f",
+                "background": "#131313",
+                "on-secondary-fixed-variant": "#474746",
+                "surface": "#131313",
+                "error-container": "#93000a",
+                "outline-variant": "#3b4b37",
+                "on-error": "#690005",
+                "on-tertiary-fixed-variant": "#454747",
+                "on-primary": "#003907",
+                "on-secondary": "#313030",
+                "surface-container-highest": "#353534",
+                "on-tertiary-fixed": "#1a1c1c",
+                "surface-container-low": "#1c1b1b",
+                "error": "#ffb4ab",
+                "secondary-container": "#474746",
+                "inverse-surface": "#e5e2e1",
+                "primary-container": "#00ff41",
+                "primary-fixed": "#72ff70",
+                "tertiary-fixed": "#e2e2e2",
+                "on-primary-fixed-variant": "#00530e",
+                "on-primary-fixed": "#002203",
+                "primary": "#ebffe2",
+                "tertiary-fixed-dim": "#c6c6c7",
+                "surface-container-lowest": "#0e0e0e",
+                "inverse-primary": "#006e16",
+                "secondary-fixed-dim": "#c8c6c5",
+                "surface-variant": "#353534",
+                "on-secondary-container": "#b7b5b4",
+                "outline": "#84967e",
+                "secondary": "#c8c6c5",
+                "primary-fixed-dim": "#00e639",
+                "surface-dim": "#131313",
+                "on-tertiary-container": "#5f6161",
+                "on-secondary-fixed": "#1c1b1b",
+                "on-surface": "#e5e2e1",
+                "on-background": "#e5e2e1",
+                "tertiary-container": "#dcdddd"
+        },
+        "borderRadius": {
+                "DEFAULT": "0.25rem",
+                "lg": "0.5rem",
+                "xl": "0.75rem",
+                "full": "9999px"
+        },
+        "spacing": {
+                "gutter": "16px",
+                "unit": "4px",
+                "panel-gap": "1px",
+                "margin-edge": "32px"
+        },
+        "fontFamily": {
+                "headline-lg": [
+                        "Chivo"
+                ],
+                "data-mono": [
+                        "JetBrains Mono"
+                ],
+                "headline-lg-mobile": [
+                        "Chivo"
+                ],
+                "display-lg": [
+                        "Chivo"
+                ],
+                "data-primary": [
+                        "JetBrains Mono"
+                ],
+                "label-caps": [
+                        "JetBrains Mono"
+                ]
+        },
+        "fontSize": {
+                "headline-lg": [
+                        "32px",
+                        {
+                                "lineHeight": "1.1",
+                                "letterSpacing": "-0.02em",
+                                "fontWeight": "800"
+                        }
+                ],
+                "data-mono": [
+                        "12px",
+                        {
+                                "lineHeight": "1.4",
+                                "letterSpacing": "0.05em",
+                                "fontWeight": "400"
+                        }
+                ],
+                "headline-lg-mobile": [
+                        "24px",
+                        {
+                                "lineHeight": "1.2",
+                                "fontWeight": "800"
+                        }
+                ],
+                "display-lg": [
+                        "72px",
+                        {
+                                "lineHeight": "72px",
+                                "letterSpacing": "-0.04em",
+                                "fontWeight": "900"
+                        }
+                ],
+                "data-primary": [
+                        "16px",
+                        {
+                                "lineHeight": "1.5",
+                                "letterSpacing": "-0.01em",
+                                "fontWeight": "500"
+                        }
+                ],
+                "label-caps": [
+                        "10px",
+                        {
+                                "lineHeight": "1.0",
+                                "letterSpacing": "0.1em",
+                                "fontWeight": "700"
+                        }
+                ]
+        }
+},
+    },
+  }
+</script>
+<style>
+        /* Extreme Glassmorphism & Tactical Overlays */
+        body {
+            background-color: #050505;
+            background-image: radial-gradient(circle at center, #111111 0%, #000000 100%);
+            background-size: cover;
+            background-attachment: fixed;
+        }
+        
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(48px);
+            -webkit-backdrop-filter: blur(48px);
+            border: 0.5px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .crt-glow {
+            text-shadow: 0 0 10px rgba(0, 255, 65, 0.4);
+        }
+        
+        .crt-glow-red {
+            text-shadow: 0 0 10px rgba(255, 180, 171, 0.4);
+        }
+
+        .border-glow {
+            box-shadow: 0 0 15px rgba(0, 255, 65, 0.15);
+        }
+        
+        .border-glow-red {
+            box-shadow: 0 0 15px rgba(255, 180, 171, 0.15);
+        }
+
+        /* Scanline effect */
+        .scanlines::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 50;
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+            opacity: 0.2;
+        }
+    </style>
+</head>
+<body class="bg-background text-white font-data-primary min-h-screen flex overflow-hidden scanlines">
+<!-- Shared Component: SideNavBar -->
+<nav class="fixed left-0 top-0 h-screen w-64 backdrop-blur-3xl border-r border-white/10 bg-white/5 dark:bg-surface-container-lowest/20 flex flex-col py-8 z-40">
+<!-- Header -->
+<div class="px-6 mb-12 flex flex-col gap-unit items-center">
+<div class="w-48 mb-2">
+        {{DATA:DOCUMENT:DOCUMENT_2}}
+    </div>
+</div>
+<!-- Navigation Tabs -->
+<ul class="flex flex-col flex-grow font-data-mono text-data-mono uppercase tracking-widest w-full">
+<li>
+<a class="flex items-center gap-4 px-6 py-4 text-on-surface-variant opacity-60 hover:text-white hover:bg-white/5 transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">radio</span>
+<span>Source</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-4 px-6 py-4 text-on-surface-variant opacity-60 hover:text-white hover:bg-white/5 transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">biotech</span>
+<span>Inspect</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-4 px-6 py-4 text-on-surface-variant opacity-60 hover:text-white hover:bg-white/5 transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">settings_input_component</span>
+<span>Configure</span>
+</a>
+</li>
+<li>
+<a class="flex items-center gap-4 px-6 py-4 text-on-surface-variant opacity-60 hover:text-white hover:bg-white/5 transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">target</span>
+<span>Extract</span>
+</a>
+</li>
+<!-- Active Tab -->
+<li>
+<a class="flex items-center gap-4 px-6 py-4 text-white border-l-2 border-white bg-white/10 transition-colors duration-200" href="#">
+<span class="material-symbols-outlined">send</span>
+<span>Deliver</span>
+</a>
+</li>
+</ul>
+<!-- Footer Actions -->
+<div class="px-6 mt-auto flex flex-col gap-4">
+<button class="w-full py-3 border-[0.5px] border-white/30 text-white font-label-caps uppercase tracking-widest hover:bg-white/10 transition-all">
+                TOP UP B1T$
+            </button>
+<div class="flex flex-col gap-2 font-data-mono text-data-mono uppercase tracking-widest text-on-surface-variant opacity-60 mt-4">
+<a class="flex items-center gap-3 hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined text-[16px]">description</span>
+<span>Docs</span>
+</a>
+<a class="flex items-center gap-3 hover:text-white transition-colors" href="#">
+<span class="material-symbols-outlined text-[16px]">sensors</span>
+<span>Status</span>
+</a>
+</div>
+</div>
+</nav>
+<!-- Main Content Canvas -->
+<main class="ml-64 flex-1 flex flex-col items-center justify-center p-margin-edge relative z-10">
+<!-- Ambient Grid Background for Center Canvas -->
+<div class="absolute inset-0 z-0 pointer-events-none" style="background-image: linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px); background-size: 64px 64px;"></div>
+<div class="w-full max-w-3xl glass-panel p-12 relative z-10 flex flex-col items-center shadow-[0_0_50px_rgba(0,0,0,0.8)] border-t border-t-white/20">
+<!-- Status Header -->
+<div class="flex flex-col items-center text-center gap-4 mb-12">
+<div class="h-24 w-24 rounded-full border border-error bg-error/10 flex items-center justify-center mb-2 border-glow-red">
+<span class="material-symbols-outlined text-[48px] text-error crt-glow-red">check_circle</span>
+</div>
+<h2 class="font-headline-lg text-headline-lg text-white uppercase tracking-tight">RESULT READY</h2>
+<p class="font-data-mono text-data-mono text-on-surface-variant uppercase tracking-widest">Extraction cycle completed successfully.</p>
+</div>
+<!-- Data Summary Card -->
+<div class="w-full border-y border-white/10 py-6 mb-12 grid grid-cols-3 gap-4">
+<div class="flex flex-col gap-1 border-r border-white/10 pr-4">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">FORMAT</span>
+<span class="font-data-mono text-data-primary text-white">RAW_MKV_CONTAINER</span>
+</div>
+<div class="flex flex-col gap-1 border-r border-white/10 px-4">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">RESOLUTION</span>
+<span class="font-data-mono text-data-primary text-white">3840x2160 (4K UHD)</span>
+</div>
+<div class="flex flex-col gap-1 pl-4">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">DURATION</span>
+<span class="font-data-mono text-data-primary text-white">02:14:45:12</span>
+</div>
+</div>
+<!-- Primary Action -->
+<button class="w-full max-w-md h-16 border-[0.5px] border-white text-white hover:bg-white/10 transition-all duration-300 flex items-center justify-center gap-4 group relative overflow-hidden">
+<div class="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+<span class="material-symbols-outlined group-hover:-translate-y-1 transition-transform">download</span>
+<span class="font-headline-lg text-[20px] font-bold tracking-widest uppercase">DOWNLOAD FILE</span>
+</button>
+<!-- Persistence Timer -->
+<div class="mt-8 flex items-center gap-3 px-6 py-2 bg-black/40 border border-white/5 rounded-full">
+<span class="material-symbols-outlined text-[16px] text-error-container animate-pulse">timer</span>
+<span class="font-data-mono text-data-mono text-on-surface-variant">FILE PERSISTENCE:</span>
+<span class="font-data-mono text-data-primary text-error" id="countdown-timer">23:59:59</span>
+</div>
+<!-- Loop Back Action -->
+<a class="mt-16 font-label-caps text-label-caps text-on-surface-variant hover:text-white flex items-center gap-2 uppercase tracking-[0.2em] transition-colors border-b border-transparent hover:border-white pb-1" href="#">
+<span class="material-symbols-outlined text-[14px]">refresh</span>
+                START NEW SOURCE
+            </a>
+</div>
+</main>
+<script>
+        // Simple visual countdown timer
+        function startTimer(duration, display) {
+            let timer = duration, hours, minutes, seconds;
+            setInterval(function () {
+                hours = parseInt(timer / 3600, 10);
+                minutes = parseInt((timer % 3600) / 60, 10);
+                seconds = parseInt(timer % 60, 10);
+
+                hours = hours < 10 ? "0" + hours : hours;
+                minutes = minutes < 10 ? "0" + minutes : minutes;
+                seconds = seconds < 10 ? "0" + seconds : seconds;
+
+                display.textContent = hours + ":" + minutes + ":" + seconds;
+
+                if (--timer < 0) {
+                    timer = duration; // Reset for demo purposes
+                }
+            }, 1000);
+        }
+
+        window.onload = function () {
+            // Start from 23:59:59 (86399 seconds)
+            let twentyFourHours = 60 * 60 * 24 - 1,
+                display = document.querySelector('#countdown-timer');
+            startTimer(twentyFourHours, display);
+        };
+    </script>
+</body></html>
