@@ -264,6 +264,9 @@ export default function Landing() {
             extractResult={extractResult}
             onRestart={handleBackToInput}
             videoTitle={media?.title}
+            thumbnailUrl={media?.thumbnail}
+            creator={media?.creator}
+            duration={media?.duration}
           />
         )}
       </main>

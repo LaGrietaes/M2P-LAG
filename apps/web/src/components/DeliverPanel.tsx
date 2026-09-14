@@ -12,6 +12,19 @@ interface DeliverPanelProps {
   extractResult: ExtractResponse;
   onRestart: () => void;
   videoTitle?: string | null;
+  thumbnailUrl?: string | null;
+  creator?: string | null;
+  duration?: number | null;
+}
+
+function formatDuration(seconds: number | null | undefined): string {
+  if (!seconds) return "—";
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
+  if (h > 0)
+    return `${h}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+  return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
 function formatRemaining(seconds: number): string {
@@ -25,6 +38,9 @@ export function DeliverPanel({
   extractResult,
   onRestart,
   videoTitle,
+  thumbnailUrl,
+  creator,
+  duration,
 }: DeliverPanelProps) {
   const [remaining, setRemaining] = useState<number | null>(() => {
     if (typeof extractResult.expires_at !== "number") return null;
@@ -94,9 +110,42 @@ export function DeliverPanel({
           </p>
         </div>
 
+        {/* Media Preview Frame with Tactical HUD */}
+        {thumbnailUrl && (
+          <div className="relative aspect-video max-w-lg mx-auto mb-6 overflow-hidden bg-black border border-border-subtle">
+            <div className="absolute inset-0 pointer-events-none z-10 border border-border-subtle m-2">
+              <div className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-accent opacity-75" />
+              <div className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-accent opacity-75" />
+              <div className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-accent opacity-75" />
+              <div className="absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2 border-accent opacity-75" />
+              <div className="absolute top-1.5 left-1.5 font-mono text-[9px] font-bold tracking-widest text-accent bg-background/80 px-1.5 py-0.5">
+                READY // PROCESSED
+              </div>
+              {duration && (
+                <div className="absolute bottom-1.5 right-1.5 font-mono text-[9px] tracking-widest text-text-secondary bg-background/80 px-1.5 py-0.5">
+                  {formatDuration(duration)}
+                </div>
+              )}
+            </div>
+            <img
+              src={thumbnailUrl}
+              alt={videoTitle || "Media preview"}
+              className="w-full h-full object-cover opacity-85 mix-blend-luminosity filter contrast-125 saturate-50 hover:opacity-100 hover:mix-blend-normal transition-all"
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = "none";
+              }}
+            />
+          </div>
+        )}
+
         {videoTitle && (
-          <div className="mb-6 font-display text-sm font-semibold text-white bg-white/5 py-3 px-4 border border-border-subtle">
-            {videoTitle}
+          <div className="mb-6 font-display text-sm font-semibold text-white bg-white/5 py-3 px-4 border border-border-subtle flex flex-col items-center justify-center gap-1">
+            <span>{videoTitle}</span>
+            {creator && (
+              <span className="font-mono text-xs text-text-secondary font-normal">
+                {creator}
+              </span>
+            )}
           </div>
         )}
 
