@@ -16,7 +16,7 @@ class FakeExtractionService(ExtractionService):
         super().__init__()
         self.last_format_id = "unset"
 
-    def _download_source(self, url, file_id, format_id=None):
+    def _download_source(self, url, file_id, format_id=None, start=None, end=None, **kwargs):
         # extract_source() renames this path, so it must exist on disk (unlike
         # extract_clip(), which only ever passes it to the faked _ffmpeg_extract).
         self.last_format_id = format_id
@@ -141,9 +141,9 @@ class TestFormatIdPlumbing:
             captured_opts.update(opts)
             return mock_ydl_instance
 
+        (svc.storage.temp_dir / "abc123.mp4").write_bytes(b"dummy")
         with patch("services.extraction_service.yt_dlp.YoutubeDL", side_effect=fake_ydl_class):
-            with patch.object(Path, "exists", return_value=True):
-                svc._download_source("https://example.com/v", "abc123", format_id="299")
+            svc._download_source("https://example.com/v", "abc123", format_id="299")
 
         assert captured_opts["format"] == "299+bestaudio/299/bestvideo+bestaudio/best"
 
@@ -159,9 +159,9 @@ class TestFormatIdPlumbing:
             captured_opts.update(opts)
             return mock_ydl_instance
 
+        (svc.storage.temp_dir / "abc123.mp4").write_bytes(b"dummy")
         with patch("services.extraction_service.yt_dlp.YoutubeDL", side_effect=fake_ydl_class):
-            with patch.object(Path, "exists", return_value=True):
-                svc._download_source("https://example.com/v", "abc123")
+            svc._download_source("https://example.com/v", "abc123")
 
         assert captured_opts["format"] == "bestvideo+bestaudio/best"
 

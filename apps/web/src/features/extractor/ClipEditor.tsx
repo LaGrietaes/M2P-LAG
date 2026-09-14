@@ -1,9 +1,8 @@
 /**
- * ClipEditor — "Extraction Controller" panel (spec §5).
+ * ClipEditor — "Download Options" panel.
  * Right column of the Configure screen: mode/content-type switches, format
  * selection (resolution/preset for video, codec for audio, format for
- * transcript), and time-range control. Single consolidated panel — the left
- * SourceCard column is preview/metadata/actions only.
+ * transcript), and time-range control.
  */
 
 import { useMemo, useState } from "react";
@@ -12,15 +11,12 @@ import { Panel } from "../../components/ui/Panel";
 import { Button } from "../../components/ui/Button";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import { FormatTable } from "../../components/ui/FormatTable";
+import { useDevMode } from "../../lib/devMode";
 
-// Primary track and "include transcript" are independent axes, not one
-// exclusive switch — this is what makes VIDEO+TRANSCRIPT and AUDIO+
-// TRANSCRIPT selectable at the same time, per the brief's combinations.
 type PrimaryTrack = "video" | "audio";
 type Mode = "clip" | "full";
 type VideoPreset = "compatible" | "high_quality";
 type AudioPreset = "mp3" | "original";
-type TranscriptFormat = "srt" | "vtt" | "txt";
 
 interface ClipEditorProps {
   media: InspectResponse;
@@ -30,6 +26,8 @@ interface ClipEditorProps {
   selectedFormatId: string | null;
   onSelectFormat: (formatId: string | null) => void;
   b1tBalance: number | null;
+  mode: Mode;
+  onModeChange: (mode: Mode) => void;
 }
 
 function formatTime(seconds: number): string {
@@ -59,10 +57,6 @@ interface ResolutionChoice {
   formatId: string;
 }
 
-// One representative format per resolution, sorted ascending, plus a MAX
-// choice pointing at the single highest-resolution real format. Picking the
-// best-bitrate format at a given height keeps the Standard tab's chips
-// mapped to a real, concrete format_id (spec §2), not just a display label.
 function getResolutionChoices(formats: FormatOption[]): {
   choices: ResolutionChoice[];
   max: ResolutionChoice | null;
@@ -96,6 +90,8 @@ export function ClipEditor({
   selectedFormatId,
   onSelectFormat,
   b1tBalance,
+  mode,
+  onModeChange,
 }: ClipEditorProps) {
   const [inPoint, setInPoint] = useState(0);
   const [outPoint, setOutPoint] = useState(0);
@@ -103,15 +99,12 @@ export function ClipEditor({
   const [outText, setOutText] = useState(formatTime(0));
   const [showError, setShowError] = useState<string | null>(null);
   const [primaryTrack, setPrimaryTrack] = useState<PrimaryTrack>("video");
-  const [includeTranscript, setIncludeTranscript] = useState(false);
-  const [mode, setMode] = useState<Mode>("clip");
   const [videoPreset, setVideoPreset] = useState<VideoPreset>("compatible");
   const [audioPreset, setAudioPreset] = useState<AudioPreset>("mp3");
-  const [transcriptFormat, setTranscriptFormat] =
-    useState<TranscriptFormat>("srt");
-  const [formatTab, setFormatTab] = useState<"standard" | "advanced">(
-    "standard",
-  );
+  const [formatTab, setFormatTab] = useState<"standard" | "advanced">("standard");
+
+  const [hovered, setHovered] = useState(false);
+  const { isDeveloper } = useDevMode();
 
   const { choices: resolutionChoices, max: maxChoice } = useMemo(
     () => getResolutionChoices(media.formats),
@@ -169,6 +162,23 @@ export function ClipEditor({
         : "border-border-subtle hover:border-accent hover:text-accent"
     }`;
 
+  const getButtonLabel = () => {
+    if (isExtracting) return "Preparing download…";
+    const base = mode === "clip" ? "DOWNLOAD CLIP" : "DOWNLOAD FULL FILE";
+    const normalCost = mode === "clip" ? 15 : 25;
+
+    if (isDeveloper && hovered) {
+      return `${base} (0 B1T$ [DEV OVERRIDE])`;
+    }
+    return `${base} (${normalCost} B1T$)`;
+  };
+
+  const balanceText = isDeveloper
+    ? "∞ B1T$ [OVERRIDE]"
+    : b1tBalance !== null
+    ? `${b1tBalance} B1T$`
+    : "—";
+
   return (
     <Panel variant="active" className="p-6 flex flex-col gap-6 relative overflow-hidden">
       <div className="absolute top-0 right-0 w-32 h-32 bg-accent/10 blur-[50px] rounded-full pointer-events-none"></div>
@@ -177,10 +187,10 @@ export function ClipEditor({
       <div className="flex justify-between items-start border-b border-border-subtle pb-4">
         <div>
           <h3 className="font-mono text-label-caps text-text-secondary uppercase tracking-widest mb-1">
-            Extraction Controller
+            Download Options
           </h3>
           <div className="font-bold text-accent tracking-tighter">
-            {mode === "clip" ? "RANGE SET" : "FULL SOURCE"}
+            {mode === "clip" ? "TRIM SELECTION" : "ENTIRE FILE"}
           </div>
         </div>
         <div className="text-right">
@@ -189,10 +199,9 @@ export function ClipEditor({
           </div>
           <div className="font-mono text-sm text-text-primary">
             BALANCE:{" "}
-            <span className="tabular-nums">
-              {b1tBalance !== null ? b1tBalance : "—"}
-            </span>{" "}
-            B1T$
+            <span className="font-bold text-accent-bright tracking-tight">
+              {balanceText}
+            </span>
           </div>
         </div>
       </div>
@@ -200,15 +209,13 @@ export function ClipEditor({
       {/* Top-level switches */}
       <div className="space-y-4">
         <div className="flex gap-1">
-          <button onClick={() => setMode("clip")} className={switchClass(mode === "clip")}>
-            Clip
+          <button onClick={() => onModeChange("clip")} className={switchClass(mode === "clip")}>
+            Custom Clip (Trim)
           </button>
-          <button onClick={() => setMode("full")} className={switchClass(mode === "full")}>
-            Full Source
+          <button onClick={() => onModeChange("full")} className={switchClass(mode === "full")}>
+            Full File
           </button>
         </div>
-        {/* Primary track and "include transcript" are independent — this is
-            what makes VIDEO+TRANSCRIPT / AUDIO+TRANSCRIPT selectable. */}
         <div className="flex gap-1">
           {(["video", "audio"] as const).map((track) => (
             <button
@@ -221,34 +228,24 @@ export function ClipEditor({
             </button>
           ))}
         </div>
-        <button
-          onClick={() => setIncludeTranscript((v) => !v)}
-          aria-pressed={includeTranscript}
-          className={`w-full px-3 py-2 text-xs font-mono font-bold tracking-widest uppercase border transition-colors flex items-center justify-center gap-2 ${
-            includeTranscript
-              ? "border-accent bg-accent/10 text-accent"
-              : "border-border-subtle text-text-secondary hover:text-text-primary"
-          }`}
-        >
-          <span
-            className={`w-3 h-3 border ${
-              includeTranscript
-                ? "bg-accent border-accent"
-                : "border-text-secondary"
-            }`}
-            aria-hidden="true"
-          />
-          + Include transcript
-        </button>
+        
+        {/* Caption toggle removed, leaving only the Locked Transcript v2 option */}
+        <div className="space-y-2">
+          <button
+            disabled
+            className="w-full px-3 py-2 text-xs font-mono font-bold tracking-widest uppercase border border-border-subtle/30 text-text-secondary/40 flex items-center justify-center gap-2 cursor-not-allowed bg-black/25"
+          >
+            <span className="w-3 h-3 border border-text-secondary/30 bg-transparent" aria-hidden="true" />
+            + AI Transcript (Locked - v2)
+          </button>
+        </div>
       </div>
 
-      {/* Content-type-specific format selection (spec §2 — moved here from
-          SourceCard so all extraction decisions live in one panel) */}
       {primaryTrack === "video" && (
         <div className="space-y-4">
           <div className="space-y-2">
             <label className="text-label-caps text-text-secondary uppercase tracking-widest">
-              Video preset
+              Video Format
             </label>
             <div className="flex gap-1">
               <button
@@ -357,49 +354,18 @@ export function ClipEditor({
             </button>
           </div>
           <p className="text-[11px] font-mono text-text-secondary/70 pt-1">
-            Audio-only extraction isn&apos;t available yet — EXTRACT currently
-            produces the video file above.
+            Audio-only extraction isn&apos;t available yet — download currently
+            produces the video file.
           </p>
         </div>
       )}
 
-      {/* Independent of primaryTrack — this is the VIDEO+TRANSCRIPT /
-          AUDIO+TRANSCRIPT combination. */}
-      {includeTranscript && (
-        <div className="space-y-2 border-t border-border-subtle pt-4">
-          <label className="text-label-caps text-text-secondary uppercase tracking-widest">
-            Transcript format
-          </label>
-          <div className="flex gap-1">
-            {(["srt", "vtt", "txt"] as const).map((fmt) => (
-              <button
-                key={fmt}
-                onClick={() => setTranscriptFormat(fmt)}
-                aria-pressed={transcriptFormat === fmt}
-                className={`px-3 py-1.5 text-xs font-mono border uppercase transition-colors ${
-                  transcriptFormat === fmt
-                    ? "border-accent bg-accent/10 text-accent"
-                    : "border-border-subtle hover:border-accent hover:text-accent"
-                }`}
-              >
-                {fmt}
-              </button>
-            ))}
-          </div>
-          <p className="text-[11px] font-mono text-text-secondary/70 pt-1">
-            Transcript generation isn&apos;t available yet — EXTRACT
-            currently produces just the {primaryTrack} file above, without a
-            transcript.
-          </p>
-        </div>
-      )}
-
-      {/* Time-range controller (clip mode only) */}
+      {/* Time-range controller */}
       {mode === "clip" ? (
         <div className="space-y-4 font-mono">
           <div className="flex flex-col gap-2">
             <div className="flex justify-between items-center text-label-caps text-text-secondary uppercase">
-              <span>IN_MARK</span>
+              <span>Start Time (IN)</span>
               <span className="text-text-primary tabular-nums">{inText}</span>
             </div>
             <input
@@ -432,7 +398,7 @@ export function ClipEditor({
 
           <div className="flex flex-col gap-2">
             <div className="flex justify-between items-center text-label-caps text-text-secondary uppercase">
-              <span>OUT_MARK</span>
+              <span>End Time (OUT)</span>
               <span className="text-text-primary tabular-nums">{outText}</span>
             </div>
             <input
@@ -445,9 +411,27 @@ export function ClipEditor({
             />
           </div>
 
+          {duration > 0 && (
+            <div className="py-2">
+              <input
+                type="range"
+                min={0}
+                max={Math.floor(duration)}
+                value={outPoint}
+                onChange={(e) => {
+                  const v = Number(e.target.value);
+                  setOutPoint(v);
+                  setOutText(formatTime(v));
+                }}
+                className="tactile-slider"
+                aria-label="Out point slider"
+              />
+            </div>
+          )}
+
           <div className="flex justify-between items-center py-3 border-t border-b border-border-subtle">
             <span className="text-label-caps text-text-secondary uppercase tracking-widest">
-              Total duration
+              Selected duration
             </span>
             <span className="text-text-primary tabular-nums">
               {selectedDuration.toFixed(1)} sec
@@ -464,7 +448,7 @@ export function ClipEditor({
         <div className="space-y-4">
           <div className="flex justify-between items-center py-3 border-t border-b border-border-subtle">
             <span className="text-label-caps text-text-secondary uppercase tracking-widest">
-              Entire source
+              Total Duration
             </span>
             <span className="text-text-primary font-mono tabular-nums">
               {formatTime(duration)}
@@ -472,8 +456,8 @@ export function ClipEditor({
           </div>
           <StatusBadge tone={maxClipSeconds !== null ? "accent" : "default"}>
             {maxClipSeconds !== null
-              ? "Guest: 1 free full download"
-              : "Registered: B1T$-gated"}
+              ? "Guest Account: 1 free full download"
+              : "Registered Account"}
           </StatusBadge>
         </div>
       )}
@@ -488,13 +472,11 @@ export function ClipEditor({
         <Button
           onClick={handleExtract}
           disabled={isExtracting || (mode === "clip" && selectedDuration <= 0)}
-          className="w-full py-4 text-lg"
+          className="w-full py-4 text-lg glitch-text-hover"
+          onMouseEnter={() => setHovered(true)}
+          onMouseLeave={() => setHovered(false)}
         >
-          {isExtracting
-            ? "Extracting…"
-            : mode === "clip"
-              ? "EXTRACT CLIP"
-              : "DOWNLOAD SOURCE"}
+          <span className="glitch-target">{getButtonLabel()}</span>
         </Button>
       </div>
     </Panel>

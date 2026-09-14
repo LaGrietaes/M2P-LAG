@@ -1,0 +1,46 @@
+# M2P — Media Server 2 Peer (Production Docker Compose)
+# Runs on web-prod connected to lagrieta_sinergia_network
+
+services:
+  m2p-web:
+    container_name: m2p-web
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.web
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5173:80"
+    depends_on:
+      - m2p-api
+    networks:
+      - m2p-internal
+      - lagrieta_sinergia_network
+
+  m2p-api:
+    container_name: m2p-api
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.api
+    restart: unless-stopped
+    environment:
+      - M2P_CORS_ORIGINS=https://m2p.lagrieta.es,http://localhost:5173
+      - M2P_DATA_DIR=/data
+      - GUEST_MAX_CLIP_SECONDS=20
+      - MAX_CONCURRENT_DOWNLOADS=2
+      - MAX_CONCURRENT_EXTRACTIONS=2
+      - M2P_DEV_MODE=false
+      - M2P_DEV_CREDIT_GRANTS=false
+      - ALLOW_PRIVATE_ADDRESSES=false
+    volumes:
+      - m2p-data:/data
+    networks:
+      - m2p-internal
+
+networks:
+  m2p-internal:
+    driver: bridge
+  lagrieta_sinergia_network:
+    external: true
+
+volumes:
+  m2p-data:

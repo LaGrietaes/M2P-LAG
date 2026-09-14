@@ -5,6 +5,7 @@ is authoritative for quotas; the frontend never trusts client-side limits (§10)
 """
 
 import os
+import shutil
 import logging
 
 log = logging.getLogger("m2p.config")
@@ -46,18 +47,9 @@ class Settings:
     )
 
     # ── Media tools ─────────────────────────────────────────────────────
-    YTDLP_PATH: str = os.getenv(
-        "YTDLP_PATH",
-        r"C:\Users\Lag-d\AppData\Local\Programs\Python\Python312\Scripts\yt-dlp.exe",
-    )
-    FFMPEG_PATH: str = os.getenv(
-        "FFMPEG_PATH",
-        r"C:\Users\Lag-d\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-9.0-full_build\bin\ffmpeg.exe",
-    )
-    FFPROBE_PATH: str = os.getenv(
-        "FFPROBE_PATH",
-        r"C:\Users\Lag-d\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-9.0-full_build\bin\ffprobe.exe",
-    )
+    YTDLP_PATH: str = os.getenv("YTDLP_PATH") or shutil.which("yt-dlp") or "yt-dlp"
+    FFMPEG_PATH: str = os.getenv("FFMPEG_PATH") or shutil.which("ffmpeg") or "ffmpeg"
+    FFPROBE_PATH: str = os.getenv("FFPROBE_PATH") or shutil.which("ffprobe") or "ffprobe"
 
     # ── SSRF guard (§19) ────────────────────────────────────────────────
     ALLOW_PRIVATE_ADDRESSES: bool = os.getenv(
@@ -80,7 +72,7 @@ class Settings:
     M2P_DEV_CREDIT_GRANTS: bool = os.getenv(
         "M2P_DEV_CREDIT_GRANTS", "false"
     ).lower() in ("1", "true", "yes")
-    B1T_PACKAGE_TIERS: dict = {1: 100, 2: 500, 3: 1000}
+    B1T_PACKAGE_TIERS: dict = {1: 100, 2: 550, 3: 2300}
 
     # ── Dev-mode registered-user bypass (frontend DevModeToggle) ────────
     # Dev/staging only: lets the frontend exercise real registered-user

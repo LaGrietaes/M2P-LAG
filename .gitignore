@@ -31,5 +31,13 @@ Thumbs.db
 # Docker
 *.pid
 
+# Media downloads & temp files
+*.part
+*.mp4
+*.webm
+*.mkv
+*.mp3
+/data/
+
 # Superpowers scratch state
 .superpowers/

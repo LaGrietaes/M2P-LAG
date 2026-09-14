@@ -7,11 +7,11 @@ interface ProgressRailProps {
 }
 
 const STEPS: { view: ViewState; label: string }[] = [
-  { view: "input", label: "SOURCE" },
-  { view: "source", label: "INSPECT" },
-  { view: "configure", label: "CONFIGURE" },
-  { view: "extracting", label: "EXTRACT" },
-  { view: "result", label: "DELIVER" },
+  { view: "input", label: "ENTER URL" },
+  { view: "source", label: "PREVIEW" },
+  { view: "configure", label: "OPTIONS" },
+  { view: "extracting", label: "PROCESSING" },
+  { view: "result", label: "DOWNLOAD" },
 ];
 
 export function ProgressRail({

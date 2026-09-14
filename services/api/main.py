@@ -123,7 +123,7 @@ async def version() -> VersionResponse:
 
 
 @app.post("/api/v1/media/inspect", response_model=InspectResponse)
-async def inspect_media(request: InspectRequest) -> InspectResponse:
+def inspect_media(request: InspectRequest) -> InspectResponse:
     """Inspect a media URL and return metadata (§08, §13)."""
     log.info("Inspect requested for: %s", request.url)
 
@@ -141,7 +141,7 @@ async def inspect_media(request: InspectRequest) -> InspectResponse:
 
 
 @app.post("/api/v1/jobs/extract", response_model=ExtractResponse)
-async def extract_clip(request: ExtractRequest, req: Request) -> ExtractResponse:
+def extract_clip(request: ExtractRequest, req: Request) -> ExtractResponse:
     """Extract a media segment (§08, §10)."""
     session = _session_from_request(req)
     guest_token = getattr(req.state, "guest_token", None)
@@ -199,12 +199,15 @@ async def extract_clip(request: ExtractRequest, req: Request) -> ExtractResponse
         "path": str(matched_path) if matched_path else None,
     }
 
+    source_ext = Path(matched_path).suffix.lstrip(".") if matched_path else "mp4"
+
     return ExtractResponse(
         file_id=file_id,
         status="ready",
-        format=request.format,
+        format=source_ext,
         expires_at=now + ttl,
     )
+
 
 
 @app.get("/api/v1/jobs/{job_id}", response_model=JobResponse)
@@ -233,10 +236,13 @@ async def download_file(file_id: str, req: Request):
     if not path.exists():
         raise HTTPException(status_code=404, detail="File not found")
 
+    ext = path.suffix.lstrip(".")
+    media_type = "video/webm" if ext == "webm" else "audio/mpeg" if ext == "mp3" else "video/mp4"
+
     return FileResponse(
         path=str(path),
-        media_type="video/mp4",
-        filename=f"m2p_clip_{file_id[:8]}.mp4",
+        media_type=media_type,
+        filename=f"m2p_clip_{file_id[:8]}.{ext}",
     )
 
 
@@ -329,8 +335,8 @@ async def get_history(request: Request):
     return {"items": []}
 
 
-@app.post("/api/v1/jobs/download")
-async def download_source(request: InspectRequest, req: Request):
+@app.post("/api/v1/jobs/download", response_model=ExtractResponse)
+def download_source(request: InspectRequest, req: Request) -> ExtractResponse:
     """Download full source media (§02, §08, spec §3).
 
     Registered users: unlimited, B1T$-gated. Guests: one free unlimited
@@ -386,7 +392,13 @@ async def download_source(request: InspectRequest, req: Request):
         "path": str(matched_path) if matched_path else None,
     }
 
-    return {"file_id": file_id, "status": "ready"}
+    return ExtractResponse(
+        file_id=file_id,
+        status="ready",
+        format="mp4",
+        expires_at=now + ttl,
+    )
+
 
 
 @app.post("/api/v1/b1t/purchase", response_model=PurchaseResponse)

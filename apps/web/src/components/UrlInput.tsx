@@ -42,7 +42,7 @@ export function UrlInput({ onInspectSuccess }: UrlInputProps) {
         disabled={mutation.isPending || !url.trim()}
         className="w-full py-3 text-lg"
       >
-        {mutation.isPending ? 'Inspecting…' : 'INITIATE INSPECTION'}
+        {mutation.isPending ? 'Analyzing…' : 'ANALYZE URL'}
       </Button>
 
       {mutation.isError && (

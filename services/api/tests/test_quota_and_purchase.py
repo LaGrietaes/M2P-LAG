@@ -66,7 +66,7 @@ def test_purchase_credits_balance_in_dev_mode(tmp_data_dir, monkeypatch):
     resp = client.post("/api/v1/b1t/purchase", json={"tier": 2})
     assert resp.status_code == 200
     body = resp.json()
-    assert body["b1t_credited"] == 500
+    assert body["b1t_credited"] == 550
     assert body["status"] == "granted"
 
 

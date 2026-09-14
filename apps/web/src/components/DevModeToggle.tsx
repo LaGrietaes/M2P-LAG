@@ -4,60 +4,38 @@
  */
 
 import { useState } from "react";
-import { getMe } from "../lib/api";
 import { useDevMode, setDevRole } from "../lib/devMode";
 import type { DevRole } from "../lib/devMode";
 
+const ROLES: DevRole[] = ["guest", "registered", "developer"];
+
+const ROLE_LABELS: Record<DevRole, string> = {
+  guest: "GUEST",
+  registered: "REGISTERED",
+  developer: "DEVELOPER [∞]",
+};
+
 export function DevModeToggle() {
   const { mode, isDeveloper } = useDevMode();
-  const [checking, setChecking] = useState(false);
-  const [backendOff, setBackendOff] = useState(false);
+  const [expanded, setExpanded] = useState(false);
 
-  const cycleMode = async () => {
-    if (mode === "guest") {
-      setChecking(true);
-      setBackendOff(false);
-      try {
-        localStorage.setItem("m2p-dev-mode", "registered");
-        const me = await getMe();
-        if (me.role === "user" && me.provider === "dev") {
-          setDevRole("registered");
-          window.location.reload();
-        } else {
-          setDevRole("guest");
-          setBackendOff(true);
-        }
-      } catch {
-        setDevRole("guest");
-        setBackendOff(true);
-      } finally {
-        setChecking(false);
-      }
-    } else if (mode === "registered") {
-      setDevRole("developer" as DevRole);
-      window.location.reload();
-    } else {
-      setDevRole("guest");
-      window.location.reload();
-    }
-  };
-
-  const modeLabel: Record<DevRole, string> = {
-    guest: "GUEST",
-    registered: "REGISTERED",
-    developer: "DEVELOPER [∞]",
+  const handleSelect = (role: DevRole) => {
+    setDevRole(role);
+    setExpanded(false);
+    window.location.reload();
   };
 
   return (
     <div className="fixed bottom-4 right-4 z-50">
-      <div className="bg-[#040508] border border-border-subtle p-3 shadow-lg">
+      <div className="bg-[#040508] border border-border-subtle p-3 shadow-lg min-w-[160px]">
         <div className="font-mono text-[9px] text-text-secondary mb-2 tracking-widest uppercase">
-          Dev Mode HUD
+          Dev Mode
         </div>
+
+        {/* Current role button */}
         <button
-          onClick={cycleMode}
-          disabled={checking}
-          className={`px-3 py-1.5 text-xs font-mono font-bold border transition-colors w-full text-left disabled:opacity-50 ${
+          onClick={() => setExpanded(!expanded)}
+          className={`w-full px-3 py-1.5 text-xs font-mono font-bold border transition-colors text-left ${
             isDeveloper
               ? "border-accent-bright bg-accent/20 text-accent-bright"
               : mode === "registered"
@@ -65,14 +43,21 @@ export function DevModeToggle() {
               : "border-border-subtle text-text-secondary hover:text-white"
           }`}
         >
-          {checking ? "Checking…" : modeLabel[mode]}
+          {ROLE_LABELS[mode]} ▾
         </button>
-        <div className="font-mono text-[9px] text-text-secondary mt-1 tracking-wider">
-          Click to cycle →
-        </div>
-        {backendOff && (
-          <div className="mt-2 font-mono text-[9px] text-accent-error max-w-[160px]">
-            Backend M2P_DEV_MODE not enabled.
+
+        {/* Role selector */}
+        {expanded && (
+          <div className="mt-1 border border-border-subtle bg-[#0a0e14]">
+            {ROLES.filter((r) => r !== mode).map((role) => (
+              <button
+                key={role}
+                onClick={() => handleSelect(role)}
+                className="block w-full px-3 py-1.5 text-xs font-mono text-left text-text-secondary hover:text-white hover:bg-surface-elevated transition-colors"
+              >
+                {ROLE_LABELS[role]}
+              </button>
+            ))}
           </div>
         )}
       </div>

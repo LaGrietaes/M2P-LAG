@@ -55,12 +55,13 @@ class StorageService:
         safe = "".join(c for c in name if c.isalnum() or c in "-_")
         return safe[:32] if safe else "media"
 
-    def delete_file(self, path: Path) -> bool:
+    def delete_file(self, path: Path | str) -> bool:
         """Safely delete a file. Returns True if deleted."""
         try:
-            if path.exists() and path.is_file():
-                path.unlink()
-                log.info("Deleted file: %s", path)
+            p = Path(path)
+            if p.exists() and p.is_file():
+                p.unlink()
+                log.info("Deleted file: %s", p)
                 return True
         except OSError as exc:
             log.warning("Failed to delete %s: %s", path, exc)
@@ -77,9 +78,9 @@ class StorageService:
                         self.delete_file(entry)
                         log.info("Cleaned up expired file: %s (age: %.0fs)", entry, age)
 
-    def get_file_size(self, path: Path) -> int:
+    def get_file_size(self, path: Path | str) -> int:
         """Return file size in bytes, or 0 if not found."""
         try:
-            return path.stat().st_size
+            return Path(path).stat().st_size
         except OSError:
             return 0

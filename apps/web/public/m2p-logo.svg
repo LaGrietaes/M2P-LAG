@@ -1,11 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg id="M2P_dark" data-name="M2P dark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 345.34 323.17">
+<svg id="Layer_2" data-name="Layer 2" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 345.34 323.17">
   <defs>
     <style>
-      .cls-1, .cls-2 { fill: #fff; }
-      .cls-3 { fill: red; }
-      .cls-4 { fill: #bfbfbf; }
-      .cls-2 { stroke: #a00000; stroke-miterlimit: 10; }
+      .cls-1, .cls-2 {
+        fill: #fff;
+      }
+
+      .cls-3 {
+        fill: red;
+      }
+
+      .cls-4 {
+        fill: #bfbfbf;
+      }
+
+      .cls-2 {
+        stroke: #a00000;
+        stroke-miterlimit: 10;
+      }
     </style>
   </defs>
   <g id="M2P_dark" data-name="M2P dark">

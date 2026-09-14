@@ -1,16 +1,12 @@
 /**
- * SourceCard — Configure screen: video preview + metadata + actions (spec §5).
- *
- * Left column only: video-preview-frame treatment (thumbnail, REC//LIVE-style
- * corner HUD), title/metadata, and the Preview/Extract/Download-Source
- * actions. Format/resolution/content-type selection lives entirely in the
- * right-column Extraction Controller (ClipEditor) — consolidated there so
- * every extraction decision is in one panel.
+ * SourceCard — Video preview + metadata + actions.
  */
 
+import { useState } from "react";
 import { Panel } from "../../components/ui/Panel";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import type { InspectResponse } from "../../types";
+import { useDevMode } from "../../lib/devMode";
 
 interface SourceCardProps {
   media: InspectResponse;
@@ -20,7 +16,6 @@ interface SourceCardProps {
   freeDownloadBadge?: "available" | "used" | null;
 }
 
-// Format duration as MM:SS or HH:MM:SS
 function formatDuration(seconds: number | null | undefined): string {
   if (!seconds) return "—";
   const h = Math.floor(seconds / 3600);
@@ -38,24 +33,69 @@ export function SourceCard({
   onDownloadSource,
   freeDownloadBadge,
 }: SourceCardProps) {
+  const { isDeveloper } = useDevMode();
+  const [hoverTrim, setHoverTrim] = useState(false);
+  const [hoverFull, setHoverFull] = useState(false);
+  const [isPlayingPreview, setIsPlayingPreview] = useState(false);
+
+  const getTrimLabel = () => {
+    if (isDeveloper && hoverTrim) {
+      return "TRIM Selection (0 B1T$ [DEV OVERRIDE])";
+    }
+    return "TRIM Selection (15 B1T$)";
+  };
+
+  const getFullLabel = () => {
+    if (freeDownloadBadge === "available") {
+      return "DOWNLOAD FULL FILE (FREE)";
+    }
+    if (isDeveloper && hoverFull) {
+      return "DOWNLOAD FULL FILE (0 B1T$ [DEV OVERRIDE])";
+    }
+    return "DOWNLOAD FULL FILE (25 B1T$)";
+  };
+
+  const isYoutube =
+    media.platform?.toLowerCase().includes("youtube") ||
+    media.webpage_url?.includes("youtube.com") ||
+    media.webpage_url?.includes("youtu.be");
+  
+  const isVimeo =
+    media.platform?.toLowerCase().includes("vimeo") ||
+    media.webpage_url?.includes("vimeo.com");
+
   return (
     <div className="flex flex-col gap-4">
-      {/* Video preview frame (spec §5) */}
-      <Panel variant="active" className="relative aspect-video overflow-hidden">
-        {/* Corner HUD accents */}
-        <div className="absolute inset-0 pointer-events-none z-10 border border-border-subtle m-4">
-          <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-accent opacity-50"></div>
-          <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-accent opacity-50"></div>
-          <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-accent opacity-50"></div>
-          <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-accent opacity-50"></div>
-          <div className="absolute top-2 left-2 font-mono text-[10px] font-bold tracking-widest text-accent bg-background/80 px-2 py-1">
-            REC // LIVE
+      {/* Video preview frame */}
+      <Panel variant="active" className="relative aspect-video overflow-hidden bg-black">
+        {/* Corner HUD accents - only show if not playing preview to allow video interaction */}
+        {!isPlayingPreview && (
+          <div className="absolute inset-0 pointer-events-none z-10 border border-border-subtle m-4">
+            <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-accent opacity-50"></div>
+            <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-accent opacity-50"></div>
+            <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-accent opacity-50"></div>
+            <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-accent opacity-50"></div>
+            <div className="absolute top-2 left-2 font-mono text-[10px] font-bold tracking-widest text-accent bg-background/80 px-2 py-1">
+              REC // LIVE
+            </div>
+            <div className="absolute bottom-2 right-2 font-mono text-[10px] tracking-widest text-text-secondary bg-background/80 px-2 py-1">
+              Duration: {formatDuration(media.duration)}
+            </div>
           </div>
-          <div className="absolute bottom-2 right-2 font-mono text-[10px] tracking-widest text-text-secondary bg-background/80 px-2 py-1">
-            TC: {formatDuration(media.duration)}
-          </div>
-        </div>
-        {media.thumbnail ? (
+        )}
+
+        {isPlayingPreview && (isYoutube || isVimeo) ? (
+          <iframe
+            src={
+              isYoutube
+                ? `https://www.youtube.com/embed/${media.id}?autoplay=1`
+                : `https://player.vimeo.com/video/${media.id}?autoplay=1`
+            }
+            className="w-full h-full border-0"
+            allow="autoplay; encrypted-media; fullscreen"
+            allowFullScreen
+          />
+        ) : media.thumbnail ? (
           <img
             src={media.thumbnail}
             alt={media.title}
@@ -110,25 +150,36 @@ export function SourceCard({
       )}
 
       {/* Actions */}
-      <div className="flex gap-3">
+      <div className="flex flex-wrap gap-3">
         <button
-          onClick={onPreview}
-          className="px-4 py-2 text-sm font-mono font-medium text-text-primary bg-transparent border border-border-subtle hover:bg-surface-elevated transition-colors"
+          onClick={() => {
+            setIsPlayingPreview((prev) => !prev);
+            onPreview?.();
+          }}
+          className={`px-4 py-2 text-sm font-mono font-medium border transition-colors ${
+            isPlayingPreview
+              ? "border-accent bg-accent/20 text-white"
+              : "text-text-primary bg-transparent border-border-subtle hover:bg-surface-elevated"
+          }`}
         >
-          PREVIEW
+          {isPlayingPreview ? "STOP PREVIEW" : "PLAY PREVIEW"}
         </button>
         <button
           onClick={onExtract}
-          className="px-4 py-2 text-sm font-mono font-medium text-white bg-accent hover:bg-brand-red-dark transition-colors"
+          className="px-4 py-2 text-sm font-mono font-medium text-white bg-accent hover:bg-brand-red-dark transition-colors glitch-text-hover"
+          onMouseEnter={() => setHoverTrim(true)}
+          onMouseLeave={() => hoverTrim && setHoverTrim(false)}
         >
-          EXTRACT
+          <span className="glitch-target">{getTrimLabel()}</span>
         </button>
         {onDownloadSource && (
           <button
             onClick={onDownloadSource}
-            className="px-4 py-2 text-sm font-mono font-medium text-text-primary bg-transparent border border-border-subtle hover:bg-surface-elevated transition-colors"
+            className="px-4 py-2 text-sm font-mono font-medium text-text-primary bg-transparent border border-border-subtle hover:bg-surface-elevated transition-colors glitch-text-hover"
+            onMouseEnter={() => setHoverFull(true)}
+            onMouseLeave={() => hoverFull && setHoverFull(false)}
           >
-            DOWNLOAD SOURCE
+            <span className="glitch-target">{getFullLabel()}</span>
           </button>
         )}
       </div>

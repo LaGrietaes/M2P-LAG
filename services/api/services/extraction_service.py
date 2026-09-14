@@ -88,11 +88,14 @@ class ExtractionService:
                 raise ExtractionError(str(exc)) from exc
 
         file_id = self._new_file_id()
-        source_path = self._download_source(url, file_id, format_id=format_id)
+        source_path = self._download_source(
+            url, file_id, format_id=format_id, start=start, end=end
+        )
+        source_ext = Path(source_path).suffix.lstrip(".") or "mp4"
 
         try:
-            output_path = self.storage.get_clip_path(file_id, ext="mp4")
-            self._ffmpeg_extract(source_path, output_path, start, end)
+            output_path = self.storage.get_clip_path(file_id, ext=source_ext)
+            self._ffmpeg_extract(source_path, output_path, 0, duration)
 
             file_size = self.storage.get_file_size(output_path)
             if session.role == "guest" and file_size > settings.GUEST_MAX_FILE_SIZE:
@@ -151,6 +154,7 @@ class ExtractionService:
 
         file_id = self._new_file_id()
         source_path = self._download_source(url, file_id, format_id=format_id)
+        source_ext = Path(source_path).suffix.lstrip(".") or "mp4"
 
         try:
             file_size = self.storage.get_file_size(Path(source_path))
@@ -162,7 +166,7 @@ class ExtractionService:
                     self.storage.delete_file(Path(source_path))
                     raise ExtractionError(str(exc)) from exc
 
-            output_path = self.storage.get_clip_path(file_id, ext="mp4")
+            output_path = self.storage.get_clip_path(file_id, ext=source_ext)
             Path(source_path).rename(output_path)
 
             if is_guest_free_download:
@@ -186,7 +190,12 @@ class ExtractionService:
         return uuid.uuid4().hex
 
     def _download_source(
-        self, url: str, file_id: str, format_id: str | None = None
+        self,
+        url: str,
+        file_id: str,
+        format_id: str | None = None,
+        start: float | None = None,
+        end: float | None = None,
     ) -> str:
         """Download source media using yt-dlp to temporary storage.
 
@@ -198,50 +207,67 @@ class ExtractionService:
         format_id is given, or if yt-dlp can't resolve it (e.g. the
         source's available formats changed between inspect and extract).
         """
-        source_path = self.storage.get_temp_path(file_id, ext="mp4")
-        # yt-dlp evaluates '/'-separated alternatives left to right, using
-        # the first one it can resolve — so a stale/unavailable format_id
-        # falls through to bestaudio pairing, then plain format_id, then the
-        # existing best-quality default, without a second Python-level call.
+        temp_dir = self.storage.temp_dir
+        outtmpl = str(temp_dir / f"{file_id}.%(ext)s")
+
         format_selector = (
             f"{format_id}+bestaudio/{format_id}/bestvideo+bestaudio/best"
             if format_id
             else "bestvideo+bestaudio/best"
         )
 
-        ydl_opts = {
+        ydl_opts: dict = {
             "quiet": True,
             "no_warnings": True,
+            "socket_timeout": 30,
             "format": format_selector,
-            "outtmpl": str(source_path),
+            "outtmpl": outtmpl,
             "noplaylist": True,
-            "merge_output_format": "mp4",
             "ffmpeg_location": self.ffmpeg_path,
+            # Browser-like user agent to reduce bot detection
+            "http_headers": {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+            },
         }
+
+        if start is not None and end is not None:
+            ydl_opts["download_ranges"] = yt_dlp.utils.download_range_func(
+                None, [(start, end)]
+            )
+            ydl_opts["force_keyframes_at_cuts"] = True
 
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 ydl.download([url])
         except yt_dlp.utils.DownloadError as exc:
-            self.storage.delete_file(source_path)
+            # Clean up any partial files with this file_id
+            for p in temp_dir.iterdir():
+                if p.stem == file_id:
+                    self.storage.delete_file(str(p))
             raise ExtractionError(
                 "We couldn't retrieve this source. "
                 "The source may be unavailable, require authentication, "
                 "or the URL may not be supported."
             ) from exc
         except Exception as exc:
-            self.storage.delete_file(source_path)
+            for p in temp_dir.iterdir():
+                if p.stem == file_id:
+                    self.storage.delete_file(str(p))
             log.error("Download failed for %s: %s", url, exc)
             raise ExtractionError(
                 "An unexpected error occurred while downloading this source."
             ) from exc
 
-        if not Path(source_path).exists():
+        # Find the actual downloaded file
+        downloaded_file = next(
+            (p for p in temp_dir.iterdir() if p.stem == file_id), None
+        )
+        if not downloaded_file or not downloaded_file.exists():
             raise ExtractionError(
                 "Download completed but no file was produced."
             )
 
-        return source_path
+        return str(downloaded_file)
 
     def _ffmpeg_extract(
         self,

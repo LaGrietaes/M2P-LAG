@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Logo } from "../components/Logo";
+import { LogoFull } from "../components/Logo";
 import { UrlInput } from "../components/UrlInput";
 import { SourceCard } from "../features/source/SourceCard";
 import { ClipEditor } from "../features/extractor/ClipEditor";
@@ -26,6 +26,7 @@ export default function Landing() {
   const [quota, setQuota] = useState<QuotaResponse | null>(null);
   const [isBuyModalOpen, setIsBuyModalOpen] = useState(false);
   const [selectedFormatId, setSelectedFormatId] = useState<string | null>(null);
+  const [editorMode, setEditorMode] = useState<"clip" | "full">("clip");
 
   const { isDeveloper } = useDevMode();
 
@@ -93,7 +94,6 @@ export default function Landing() {
   };
 
   const handleBackToSource = () => setView("source");
-  const handleConfigure = () => setView("configure");
 
   const freeDownloadBadge =
     quota && quota.role === "guest"
@@ -128,12 +128,9 @@ export default function Landing() {
           <div className="min-h-[calc(100vh-12rem)] flex flex-col items-center justify-center gap-12">
             {/* Hero */}
             <div className="text-center">
-              <Logo className="w-16 h-16 mx-auto mb-6 opacity-90" />
-              <h1 className="font-display font-black text-5xl sm:text-7xl tracking-tighter text-white mb-3">
-                M2P
-              </h1>
-              <p className="font-mono text-sm text-text-secondary tracking-[0.2em] uppercase">
-                Media 2 Peer · Tactical Extraction System
+              <LogoFull className="h-16 sm:h-20 w-auto mx-auto mb-4 drop-shadow-[0_0_20px_rgba(255,0,0,0.15)]" />
+              <p className="font-mono text-xs sm:text-sm text-text-secondary tracking-[0.25em] uppercase">
+                Tactical Downloader · Signal Extraction
               </p>
             </div>
 
@@ -145,7 +142,7 @@ export default function Landing() {
               <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-accent-bright pointer-events-none" />
               <div className="bg-surface/80 border border-border-subtle p-8 backdrop-blur-xl">
                 <p className="font-mono text-label-caps text-text-secondary tracking-widest mb-6 uppercase">
-                  01 // INJECT SOURCE URL
+                  01 // PASTE VIDEO URL
                 </p>
                 <UrlInput onInspectSuccess={handleInspectSuccess} />
               </div>
@@ -165,20 +162,26 @@ export default function Landing() {
           </div>
         )}
 
-        {/* ─── STAGE: SOURCE (INSPECT) ──────────────────────────────── */}
+        {/* ─── STAGE: SOURCE (PREVIEW) ──────────────────────────────── */}
         {view === "source" && media && (
           <div className="space-y-6">
             <button
               onClick={handleBackToInput}
               className="font-mono text-xs text-text-secondary hover:text-white tracking-wider uppercase transition-colors"
             >
-              ← NEW SOURCE
+              ← ENTER ANOTHER URL
             </button>
             <SourceCard
               media={media}
-              onExtract={handleConfigure}
+              onExtract={() => {
+                setEditorMode("clip");
+                setView("configure");
+              }}
               onPreview={() => {}}
-              onDownloadSource={handleDownloadSource}
+              onDownloadSource={() => {
+                setEditorMode("full");
+                setView("configure");
+              }}
               freeDownloadBadge={freeDownloadBadge}
             />
             {downloadMutation.isError && (
@@ -198,22 +201,26 @@ export default function Landing() {
               onClick={handleBackToSource}
               className="font-mono text-xs text-text-secondary hover:text-white tracking-wider uppercase transition-colors"
             >
-              ← BACK TO INSPECT
+              ← BACK TO PREVIEW
             </button>
             <div className="grid grid-cols-1 md:grid-cols-8 gap-4 items-start">
               <div className="md:col-span-5">
                 <SourceCard
                   media={media}
-                  onExtract={handleConfigure}
+                  onExtract={() => {
+                    setEditorMode("clip");
+                  }}
                   onPreview={() => {}}
-                  onDownloadSource={handleDownloadSource}
+                  onDownloadSource={() => {
+                    setEditorMode("full");
+                  }}
                   freeDownloadBadge={freeDownloadBadge}
                 />
               </div>
               <div className="md:col-span-3">
                 <ClipEditor
                   media={media}
-                  onExtract={handleExtract}
+                  onExtract={editorMode === "clip" ? handleExtract : handleDownloadSource}
                   isExtracting={isExtracting}
                   maxClipSeconds={
                     !isDeveloper && quota?.role === "guest"
@@ -223,6 +230,8 @@ export default function Landing() {
                   selectedFormatId={selectedFormatId}
                   onSelectFormat={setSelectedFormatId}
                   b1tBalance={isDeveloper ? Infinity : (quota?.b1t_balance ?? null)}
+                  mode={editorMode}
+                  onModeChange={setEditorMode}
                 />
               </div>
             </div>
@@ -230,7 +239,7 @@ export default function Landing() {
               <div className="p-3 text-sm font-mono text-accent-error bg-accent-error/10 border border-accent-error/40">
                 {extractMutation.error instanceof Error
                   ? extractMutation.error.message
-                  : "Extraction failed. Please try again."}
+                  : "Download preparation failed. Please try again."}
               </div>
             )}
             {downloadMutation.isError && (
@@ -240,6 +249,7 @@ export default function Landing() {
                   : "Download failed. Please try again."}
               </div>
             )}
+
           </div>
         )}
 
@@ -253,6 +263,7 @@ export default function Landing() {
           <DeliverPanel
             extractResult={extractResult}
             onRestart={handleBackToInput}
+            videoTitle={media?.title}
           />
         )}
       </main>

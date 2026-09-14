@@ -25,13 +25,21 @@ describe('ClipEditor duration cap', () => {
         onExtract={onExtract}
         isExtracting={false}
         maxClipSeconds={20}
+        selectedFormatId={null}
+        onSelectFormat={vi.fn()}
+        b1tBalance={null}
+        mode="clip"
+        onModeChange={vi.fn()}
       />,
     )
 
-    fireEvent.change(screen.getByLabelText(/out point/i), {
+    fireEvent.change(screen.getByLabelText(/^in point$/i), {
+      target: { value: '00:00' },
+    })
+    fireEvent.change(screen.getByLabelText(/^out point$/i), {
       target: { value: '00:30' },
     })
-    fireEvent.click(screen.getByRole('button', { name: /extract clip/i }))
+    fireEvent.click(screen.getByRole('button', { name: /download clip/i }))
 
     expect(screen.getByText(/20 seconds/i)).toBeInTheDocument()
     expect(onExtract).not.toHaveBeenCalled()
@@ -45,13 +53,21 @@ describe('ClipEditor duration cap', () => {
         onExtract={onExtract}
         isExtracting={false}
         maxClipSeconds={null}
+        selectedFormatId={null}
+        onSelectFormat={vi.fn()}
+        b1tBalance={null}
+        mode="clip"
+        onModeChange={vi.fn()}
       />,
     )
 
-    fireEvent.change(screen.getByLabelText(/out point/i), {
+    fireEvent.change(screen.getByLabelText(/^in point$/i), {
+      target: { value: '00:00' },
+    })
+    fireEvent.change(screen.getByLabelText(/^out point$/i), {
       target: { value: '10:00' },
     })
-    fireEvent.click(screen.getByRole('button', { name: /extract clip/i }))
+    fireEvent.click(screen.getByRole('button', { name: /download clip/i }))
 
     expect(screen.queryByText(/exceeds/i)).not.toBeInTheDocument()
     expect(onExtract).toHaveBeenCalledWith(0, 600)
@@ -64,6 +80,11 @@ describe('ClipEditor duration cap', () => {
         onExtract={vi.fn()}
         isExtracting={false}
         maxClipSeconds={20}
+        selectedFormatId={null}
+        onSelectFormat={vi.fn()}
+        b1tBalance={null}
+        mode="clip"
+        onModeChange={vi.fn()}
       />,
     )
     expect(document.querySelector('video')).toBeNull()

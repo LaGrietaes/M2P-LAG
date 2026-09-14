@@ -12,7 +12,7 @@ import type {
 import { getGuestToken, getAuthToken } from "./guestToken";
 import { isDevModeAvailable, getDevRole } from "./devMode";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8001";
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "";
 
 function authHeaders(): Record<string, string> {
   const headers: Record<string, string> = {
@@ -25,7 +25,8 @@ function authHeaders(): Record<string, string> {
   // Only ever sent from a dev build (import.meta.env.DEV); the backend
   // ignores this header entirely unless it also has M2P_DEV_MODE=true, so
   // this is inert in any real deployment either way (defense in depth).
-  if (isDevModeAvailable && getDevRole() === "registered") {
+  const devRole = getDevRole();
+  if (isDevModeAvailable && (devRole === "registered" || devRole === "developer")) {
     headers["X-M2P-Dev-Role"] = "user";
   }
   return headers;

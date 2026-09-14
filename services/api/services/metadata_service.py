@@ -43,10 +43,15 @@ class MetadataService:
             raise MetadataError(error)
 
         # 2. yt-dlp metadata extraction
-        ydl_opts = {
+        ydl_opts: dict = {
             "quiet": True,
             "no_warnings": True,
             "skip_download": True,
+            "socket_timeout": 15,
+            # Browser-like user agent to reduce bot detection
+            "http_headers": {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+            },
         }
 
         try:
@@ -96,6 +101,15 @@ class MetadataService:
                 subtitles.append(
                     SubtitleOption(
                         language=lang,
+                        ext=sub.get("ext", ""),
+                        url=sub.get("url"),
+                    )
+                )
+        for lang, subs in (info.get("automatic_captions") or {}).items():
+            for sub in subs:
+                subtitles.append(
+                    SubtitleOption(
+                        language=f"{lang} (auto)",
                         ext=sub.get("ext", ""),
                         url=sub.get("url"),
                     )
