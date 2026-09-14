@@ -6,11 +6,12 @@ import { useEffect, useState } from "react";
 import { Panel } from "./ui/Panel";
 import { Button } from "./ui/Button";
 import { downloadFile } from "../lib/api";
-import type { ExtractResponse } from "../types";
+import type { ExtractResponse, InspectResponse } from "../types";
 
 interface DeliverPanelProps {
   extractResult: ExtractResponse;
   onRestart: () => void;
+  media?: InspectResponse | null;
   videoTitle?: string | null;
   thumbnailUrl?: string | null;
   creator?: string | null;
@@ -37,11 +38,13 @@ function formatRemaining(seconds: number): string {
 export function DeliverPanel({
   extractResult,
   onRestart,
+  media,
   videoTitle,
   thumbnailUrl,
   creator,
   duration,
 }: DeliverPanelProps) {
+  const [isPlayingPreview, setIsPlayingPreview] = useState(false);
   const [remaining, setRemaining] = useState<number | null>(() => {
     if (typeof extractResult.expires_at !== "number") return null;
     return Math.max(0, extractResult.expires_at - Date.now() / 1000);
@@ -50,6 +53,20 @@ export function DeliverPanel({
     "idle",
   );
   const [copied, setCopied] = useState(false);
+
+  const displayThumbnail = media?.thumbnail || thumbnailUrl;
+  const displayTitle = media?.title || videoTitle;
+  const displayCreator = media?.creator || creator;
+  const displayDuration = media?.duration ?? duration;
+
+  const isYoutube =
+    media?.platform?.toLowerCase().includes("youtube") ||
+    media?.webpage_url?.includes("youtube.com") ||
+    media?.webpage_url?.includes("youtu.be");
+
+  const isVimeo =
+    media?.platform?.toLowerCase().includes("vimeo") ||
+    media?.webpage_url?.includes("vimeo.com");
 
   useEffect(() => {
     const expiresAt = extractResult.expires_at;
@@ -111,39 +128,77 @@ export function DeliverPanel({
         </div>
 
         {/* Media Preview Frame with Tactical HUD */}
-        {thumbnailUrl && (
-          <div className="relative aspect-video max-w-lg mx-auto mb-6 overflow-hidden bg-black border border-border-subtle">
-            <div className="absolute inset-0 pointer-events-none z-10 border border-border-subtle m-2">
-              <div className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-accent opacity-75" />
-              <div className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-accent opacity-75" />
-              <div className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-accent opacity-75" />
-              <div className="absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2 border-accent opacity-75" />
-              <div className="absolute top-1.5 left-1.5 font-mono text-[9px] font-bold tracking-widest text-accent bg-background/80 px-1.5 py-0.5">
-                READY // PROCESSED
-              </div>
-              {duration && (
-                <div className="absolute bottom-1.5 right-1.5 font-mono text-[9px] tracking-widest text-text-secondary bg-background/80 px-1.5 py-0.5">
-                  {formatDuration(duration)}
+        {(displayThumbnail || isPlayingPreview) && (
+          <div className="space-y-3 max-w-lg mx-auto mb-6">
+            <div className="relative aspect-video overflow-hidden bg-black border border-border-subtle">
+              {!isPlayingPreview && (
+                <div className="absolute inset-0 pointer-events-none z-10 border border-border-subtle m-2">
+                  <div className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-accent opacity-75" />
+                  <div className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-accent opacity-75" />
+                  <div className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-accent opacity-75" />
+                  <div className="absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2 border-accent opacity-75" />
+                  <div className="absolute top-1.5 left-1.5 font-mono text-[9px] font-bold tracking-widest text-accent bg-background/80 px-1.5 py-0.5">
+                    READY // PROCESSED
+                  </div>
+                  {displayDuration && (
+                    <div className="absolute bottom-1.5 right-1.5 font-mono text-[9px] tracking-widest text-text-secondary bg-background/80 px-1.5 py-0.5">
+                      Duration: {formatDuration(displayDuration)}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {isPlayingPreview && (isYoutube || isVimeo) ? (
+                <iframe
+                  src={
+                    isYoutube
+                      ? `https://www.youtube.com/embed/${media?.id}?autoplay=1`
+                      : `https://player.vimeo.com/video/${media?.id}?autoplay=1`
+                  }
+                  className="w-full h-full border-0"
+                  allow="autoplay; encrypted-media; fullscreen"
+                  allowFullScreen
+                />
+              ) : displayThumbnail ? (
+                <img
+                  src={displayThumbnail}
+                  alt={displayTitle || "Media preview"}
+                  className="w-full h-full object-cover opacity-85 mix-blend-luminosity filter contrast-125 saturate-50 hover:opacity-100 hover:mix-blend-normal transition-all"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = "none";
+                  }}
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-text-secondary">
+                  <span className="font-mono text-xs">NO_PREVIEW_AVAILABLE</span>
                 </div>
               )}
             </div>
-            <img
-              src={thumbnailUrl}
-              alt={videoTitle || "Media preview"}
-              className="w-full h-full object-cover opacity-85 mix-blend-luminosity filter contrast-125 saturate-50 hover:opacity-100 hover:mix-blend-normal transition-all"
-              onError={(e) => {
-                (e.target as HTMLImageElement).style.display = "none";
-              }}
-            />
+
+            {(isYoutube || isVimeo) && (
+              <div className="flex justify-center">
+                <button
+                  type="button"
+                  onClick={() => setIsPlayingPreview((prev) => !prev)}
+                  className={`px-3 py-1.5 text-xs font-mono font-medium border transition-colors ${
+                    isPlayingPreview
+                      ? "border-accent bg-accent/20 text-white"
+                      : "text-text-primary bg-transparent border-border-subtle hover:bg-surface-elevated"
+                  }`}
+                >
+                  {isPlayingPreview ? "STOP PREVIEW" : "PLAY PREVIEW"}
+                </button>
+              </div>
+            )}
           </div>
         )}
 
-        {videoTitle && (
+        {displayTitle && (
           <div className="mb-6 font-display text-sm font-semibold text-white bg-white/5 py-3 px-4 border border-border-subtle flex flex-col items-center justify-center gap-1">
-            <span>{videoTitle}</span>
-            {creator && (
+            <span>{displayTitle}</span>
+            {displayCreator && (
               <span className="font-mono text-xs text-text-secondary font-normal">
-                {creator}
+                {displayCreator}
               </span>
             )}
           </div>

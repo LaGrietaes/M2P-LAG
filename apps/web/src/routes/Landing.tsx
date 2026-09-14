@@ -263,6 +263,7 @@ export default function Landing() {
           <DeliverPanel
             extractResult={extractResult}
             onRestart={handleBackToInput}
+            media={media}
             videoTitle={media?.title}
             thumbnailUrl={media?.thumbnail}
             creator={media?.creator}
