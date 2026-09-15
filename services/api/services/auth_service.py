@@ -70,7 +70,7 @@ class AuthService:
                 with psycopg2.connect(self.database_url) as conn:
                     with conn.cursor(cursor_factory=RealDictCursor) as cur:
                         cur.execute(
-                            "SELECT id, email, bits_balance, handle, avatar_url FROM lagrieta_member WHERE LOWER(email) = %s LIMIT 1;",
+                            "SELECT id, email, bits_balance, avatar_url FROM lagrieta_member WHERE LOWER(email) = %s LIMIT 1;",
                             (clean_email,),
                         )
                         record = cur.fetchone()
@@ -82,7 +82,7 @@ class AuthService:
                                 """
                                 INSERT INTO lagrieta_member (id, ghost_member_id, email, bits_balance)
                                 VALUES (%s, %s, %s, %s)
-                                RETURNING id, email, bits_balance, handle, avatar_url;
+                                RETURNING id, email, bits_balance, avatar_url;
                                 """,
                                 (new_id, ghost_id, clean_email, 0),
                             )
@@ -93,14 +93,13 @@ class AuthService:
 
         user_id = record["id"] if record else "user"
         bits_balance = record["bits_balance"] if record and "bits_balance" in record else 0
-        name = (record.get("handle") if record else None) or (clean_email.split("@")[0])
+        name = clean_email.split("@")[0]
 
         jwt_secret = self.jwt_secret or "0qnZfgzMZcYW7IprA29pWHeKqSK72GWb1ArqrdFkkE"
         import jwt
         payload = {
             "id": user_id,
             "email": clean_email,
-            "handle": record.get("handle") if record else None,
             "role": "MEMBER",
         }
         token = jwt.encode(payload, jwt_secret, algorithm="HS256")
@@ -130,8 +129,8 @@ class AuthService:
             with psycopg2.connect(self.database_url) as conn:
                 with conn.cursor(cursor_factory=RealDictCursor) as cur:
                     cur.execute(
-                        "SELECT id, email, bits_balance, handle, avatar_url FROM lagrieta_member WHERE email = %s OR id = %s LIMIT 1;",
-                        (email or "", member_id or ""),
+                        "SELECT id, email, bits_balance, avatar_url FROM lagrieta_member WHERE LOWER(email) = %s OR id = %s LIMIT 1;",
+                        (email.lower() if email else "", member_id or ""),
                     )
                     return cur.fetchone()
         except Exception as exc:
