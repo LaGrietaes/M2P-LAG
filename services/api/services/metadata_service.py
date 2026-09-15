@@ -47,7 +47,16 @@ class MetadataService:
             "quiet": True,
             "no_warnings": True,
             "skip_download": True,
-            "socket_timeout": 15,
+            "socket_timeout": 12,
+            "retries": 2,
+            "extractor_retries": 2,
+            "fragment_retries": 2,
+            "dynamic_mpd": False,
+            "extractor_args": {
+                "youtube": {
+                    "player_client": ["web", "android", "ios"],
+                },
+            },
             # Browser-like user agent to reduce bot detection
             "http_headers": {
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
@@ -58,11 +67,22 @@ class MetadataService:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info = ydl.extract_info(url, download=False)
         except yt_dlp.utils.DownloadError as exc:
-            raise MetadataError(
-                "We couldn't retrieve this source. "
-                "The source may be unavailable, require authentication, "
-                "or the URL may not be supported."
-            ) from exc
+            raw_msg = str(exc)
+            clean_msg = raw_msg.replace("ERROR: ", "").strip()
+            # Clean up common prefixes to make errors concise and friendly
+            if "Private video" in clean_msg:
+                user_msg = "This video is private and cannot be accessed."
+            elif "Sign in to confirm you’re not a bot" in clean_msg or "Sign in to confirm you're not a bot" in clean_msg:
+                user_msg = "YouTube bot protection triggered for this source. Please try another video or format."
+            elif "Video unavailable" in clean_msg:
+                user_msg = "This video is unavailable or has been removed."
+            elif "The web client only works when logged-in" in clean_msg:
+                user_msg = "This platform requires an authenticated account to view."
+            else:
+                user_msg = clean_msg if len(clean_msg) < 160 else "We couldn't retrieve this source. It may be unavailable or unsupported."
+            
+            log.warning("yt-dlp DownloadError for %s: %s", url, clean_msg)
+            raise MetadataError(user_msg) from exc
         except Exception as exc:
             log.error("Metadata extraction failed for %s: %s", url, exc)
             raise MetadataError(
