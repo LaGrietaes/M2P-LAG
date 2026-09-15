@@ -85,26 +85,30 @@ class CreditService:
         """
         cost = self.cost_for(operation, duration=duration, file_size=file_size)
 
-        available = session.b1t_balance - self._spent_so_far(session.user_id)
+        import os
+        db_url = os.getenv("DATABASE_URL")
+
+        if db_url:
+            available = session.b1t_balance
+        else:
+            available = session.b1t_balance - self._spent_so_far(session.user_id)
+
         if cost > available:
             raise InsufficientCreditsError(required=cost, available=available)
 
         # Deduct from PostgreSQL if connected
-        if cost > 0 and session.role != "guest":
-            import os
-            db_url = os.getenv("DATABASE_URL")
-            if db_url:
-                try:
-                    import psycopg2
-                    with psycopg2.connect(db_url) as conn:
-                        with conn.cursor() as cur:
-                            cur.execute(
-                                "UPDATE lagrieta_member SET bits_balance = GREATEST(0, bits_balance - %s) WHERE id = %s OR email = %s;",
-                                (cost, session.user_id, session.email or ""),
-                            )
-                            conn.commit()
-                except Exception as exc:
-                    log.warning("Failed to deduct B1T$ in shared database: %s", exc)
+        if cost > 0 and session.role != "guest" and db_url:
+            try:
+                import psycopg2
+                with psycopg2.connect(db_url) as conn:
+                    with conn.cursor() as cur:
+                        cur.execute(
+                            "UPDATE lagrieta_member SET bits_balance = GREATEST(0, bits_balance - %s) WHERE id = %s OR email = %s;",
+                            (cost, session.user_id, session.email or ""),
+                        )
+                        conn.commit()
+            except Exception as exc:
+                log.warning("Failed to deduct B1T$ in shared database: %s", exc)
 
         self._log_transaction(session.user_id, operation, cost, duration, file_size)
         return cost

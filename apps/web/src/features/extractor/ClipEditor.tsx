@@ -164,14 +164,17 @@ export function ClipEditor({
     }`;
 
   const getButtonLabel = () => {
-    if (isExtracting) return "Preparing download…";
-    const base = mode === "clip" ? "DOWNLOAD CLIP" : "DOWNLOAD FULL FILE";
-    const normalCost = mode === "clip" ? 15 : 25;
+    if (isExtracting) return "PREPARING DOWNLOAD…";
+    const trackLabel = primaryTrack === "audio" ? "AUDIO" : mode === "clip" ? "CLIP" : "FULL FILE";
+    const base = `DOWNLOAD ${trackLabel}`;
 
-    if (isDeveloper && hovered) {
-      return `${base} (0 B1T$ [DEV OVERRIDE])`;
+    if (maxClipSeconds !== null) {
+      return mode === "clip" ? `DOWNLOAD ${trackLabel} (FREE)` : "DOWNLOAD FULL FILE (1 FREE DL)";
     }
-    return `${base} (${normalCost} B1T$)`;
+    if (isDeveloper && hovered) {
+      return `${base} (0 B1T$ [DEV])`;
+    }
+    return base;
   };
 
   const balanceText = isDeveloper

@@ -40,9 +40,9 @@ export function SourceCard({
 
   const getTrimLabel = () => {
     if (isDeveloper && hoverTrim) {
-      return "TRIM Selection (0 B1T$ [DEV OVERRIDE])";
+      return "TRIM SELECTION (0 B1T$ [DEV])";
     }
-    return "TRIM Selection (15 B1T$)";
+    return "TRIM / CUSTOM CLIP";
   };
 
   const getFullLabel = () => {
@@ -50,9 +50,9 @@ export function SourceCard({
       return "DOWNLOAD FULL FILE (FREE)";
     }
     if (isDeveloper && hoverFull) {
-      return "DOWNLOAD FULL FILE (0 B1T$ [DEV OVERRIDE])";
+      return "DOWNLOAD FULL FILE (0 B1T$ [DEV])";
     }
-    return "DOWNLOAD FULL FILE (25 B1T$)";
+    return "DOWNLOAD FULL FILE";
   };
 
   const isYoutube =
