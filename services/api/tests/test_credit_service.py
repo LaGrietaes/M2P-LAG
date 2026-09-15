@@ -11,9 +11,9 @@ def make_session(balance: int) -> Session:
 
 
 class TestCostFor:
-    def test_registered_short_clip_is_free(self):
+    def test_registered_short_clip_costs_one_bit(self):
         svc = CreditService()
-        assert svc.cost_for("clip", duration=45) == 0
+        assert svc.cost_for("clip", duration=45) == 1
 
     def test_full_download_cost_rounds_up_per_50mb(self):
         svc = CreditService()
@@ -74,11 +74,11 @@ class TestCharge:
         lines = log_path.read_text().strip().splitlines()
         assert len(lines) == 2
 
-    def test_registered_short_clip_charge_is_zero_and_still_logged(self, tmp_data_dir):
+    def test_registered_short_clip_charge_is_one_and_logged(self, tmp_data_dir):
         svc = CreditService()
-        session = make_session(balance=0)
+        session = make_session(balance=5)
         cost = svc.charge(session, "clip", duration=45)
-        assert cost == 0
+        assert cost == 1
 
     def test_ledger_accumulates_and_gates_future_charges(self, tmp_data_dir):
         """Second charge is gated against balance minus already-spent, not the raw balance."""

@@ -174,7 +174,8 @@ export function ClipEditor({
     if (isDeveloper && hovered) {
       return `${base} (0 B1T$ [DEV])`;
     }
-    return base;
+    const cost = mode === "clip" ? Math.max(1, Math.ceil((selectedDuration || 1) / 60)) : Math.max(1, Math.ceil((duration || 1) / 60));
+    return `${base} (${cost} B1T$)`;
   };
 
   const balanceText = isDeveloper

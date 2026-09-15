@@ -55,12 +55,12 @@ class CreditService:
             raise ValueError(f"Unknown operation: {operation}")
 
         if operation == "clip":
-            return 0 if duration <= _SHORT_CLIP_MAX_SECONDS else self._duration_units(duration)
+            return max(1, self._duration_units(duration)) if duration > 0 else 0
 
         if operation == "full_download":
             if file_size <= 0:
                 return 0
-            return math.ceil(file_size / _FULL_DOWNLOAD_UNIT_BYTES)
+            return max(1, math.ceil(file_size / _FULL_DOWNLOAD_UNIT_BYTES))
 
         if operation == "transcript":
             return self._duration_units(duration)
@@ -103,10 +103,11 @@ class CreditService:
                 with psycopg2.connect(db_url) as conn:
                     with conn.cursor() as cur:
                         cur.execute(
-                            "UPDATE lagrieta_member SET bits_balance = GREATEST(0, bits_balance - %s) WHERE id = %s OR email = %s;",
+                            "UPDATE lagrieta_member SET bits_balance = GREATEST(0, bits_balance - %s), updated_at = NOW() WHERE id = %s OR email = %s;",
                             (cost, session.user_id, session.email or ""),
                         )
                         conn.commit()
+                session.b1t_balance = max(0, session.b1t_balance - cost)
             except Exception as exc:
                 log.warning("Failed to deduct B1T$ in shared database: %s", exc)
 

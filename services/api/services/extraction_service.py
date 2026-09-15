@@ -230,8 +230,6 @@ class ExtractionService:
         url: str,
         file_id: str,
         format_id: str | None = None,
-        start: float | None = None,
-        end: float | None = None,
         target_format: str = "mp4",
     ) -> str:
         """Download source media using yt-dlp to temporary storage.
@@ -269,12 +267,6 @@ class ExtractionService:
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
             },
         }
-
-        if start is not None and end is not None:
-            ydl_opts["download_ranges"] = yt_dlp.utils.download_range_func(
-                None, [(start, end)]
-            )
-            ydl_opts["force_keyframes_at_cuts"] = True
 
         try:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:

@@ -53,9 +53,11 @@ export default function Landing() {
     onSuccess: (data) => {
       setExtractResult(data);
       setView("result");
+      getQuota().then(setQuota).catch(() => {});
     },
     onError: () => {
       setView("configure");
+      getQuota().then(setQuota).catch(() => {});
     },
   });
 
