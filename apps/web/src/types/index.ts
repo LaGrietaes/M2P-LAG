@@ -106,6 +106,8 @@ export type PurchaseResponse = z.infer<typeof PurchaseResponseSchema>;
 
 export const QuotaResponseSchema = z.object({
   role: z.string(),
+  email: z.string().optional().nullable(),
+  name: z.string().optional().nullable(),
   max_clip_seconds: z.number().optional().nullable(),
   max_file_size: z.number().optional().nullable(),
   daily_jobs_remaining: z.number().optional().nullable(),

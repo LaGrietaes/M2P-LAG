@@ -1,5 +1,5 @@
 import { Logo } from "./Logo";
-import { useDevMode } from "../lib/devMode";
+import { useDevMode, isDevModeAvailable } from "../lib/devMode";
 import type { QuotaResponse } from "../types";
 
 interface HeaderHUDProps {
@@ -10,18 +10,22 @@ interface HeaderHUDProps {
 export function HeaderHUD({ quota, onOpenBuyModal }: HeaderHUDProps) {
   const { isDeveloper, isRegistered } = useDevMode();
 
-  const roleText = isDeveloper
+  const isUserLoggedIn = quota?.role === "registered" || quota?.role === "user";
+
+  const roleText = (isDevModeAvailable && isDeveloper)
     ? "DEVELOPER [UNLIMITED]"
-    : isRegistered
-    ? "REGISTERED"
-    : quota?.role === "registered"
-    ? "REGISTERED"
+    : (isDevModeAvailable && isRegistered)
+    ? "REGISTERED [DEV]"
+    : isUserLoggedIn
+    ? (quota?.name || quota?.email?.split("@")[0] || "REGISTERED").toUpperCase()
     : "GUEST";
 
-  const balanceText = isDeveloper
+  const balanceText = (isDevModeAvailable && isDeveloper)
     ? "∞ B1T$ [OVERRIDE]"
-    : quota?.b1t_balance !== undefined && quota?.b1t_balance !== null
-    ? `${quota.b1t_balance} B1T$`
+    : isUserLoggedIn
+    ? `${quota?.b1t_balance ?? 0} B1T$`
+    : quota?.free_download_used
+    ? "0 FREE DL"
     : "1 FREE DL";
 
   return (
@@ -46,7 +50,7 @@ export function HeaderHUD({ quota, onOpenBuyModal }: HeaderHUDProps) {
 
         <div className="flex items-center gap-2 px-3 py-1.5 bg-surface border border-border-subtle text-text-secondary">
           <span className="hidden sm:inline">IDENTITY:</span>
-          <strong className={isDeveloper ? "text-accent-bright font-bold" : "text-white"}>
+          <strong className={isDeveloper && isDevModeAvailable ? "text-accent-bright font-bold" : isUserLoggedIn ? "text-white font-bold" : "text-text-secondary"}>
             {roleText}
           </strong>
         </div>
@@ -57,7 +61,7 @@ export function HeaderHUD({ quota, onOpenBuyModal }: HeaderHUDProps) {
         </div>
 
         {/* Log In Link for Guests */}
-        {!isDeveloper && !isRegistered && quota?.role !== "registered" && quota?.role !== "user" && (
+        {!isUserLoggedIn && !(isDevModeAvailable && (isDeveloper || isRegistered)) && (
           <a
             href="https://beta.lagrieta.es/#/portal/signin"
             className="px-3 py-1.5 text-xs font-mono font-bold tracking-wider uppercase text-white bg-white/5 border border-border-subtle hover:border-accent hover:text-accent transition-colors"
@@ -71,7 +75,7 @@ export function HeaderHUD({ quota, onOpenBuyModal }: HeaderHUDProps) {
           className="glitch-text-hover relative px-4 py-1.5 text-xs font-mono font-bold tracking-wider uppercase text-white bg-accent border border-accent-bright shadow-[0_0_12px_rgba(160,0,0,0.4)] hover:bg-accent-bright transition-colors"
         >
           <span className="glitch-target">
-            {isDeveloper ? "BUY B1T$ (0 B1T$)" : "BUY B1T$"}
+            {isDeveloper && isDevModeAvailable ? "BUY B1T$ (0 B1T$)" : "BUY B1T$"}
           </span>
         </button>
       </div>

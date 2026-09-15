@@ -317,6 +317,8 @@ async def get_quota(request: Request):
 
     return {
         "role": session.role,
+        "email": session.email,
+        "name": session.name,
         "max_clip_seconds": max_clip_seconds,
         "max_file_size": max_file_size,
         "daily_jobs_remaining": quota.get("daily_jobs"),
