@@ -152,6 +152,25 @@ export async function purchaseB1t(tier: number): Promise<PurchaseResponse> {
   return response.json();
 }
 
+export async function loginDirectly(email: string): Promise<{
+  status: string;
+  token: string;
+  session: Session;
+}> {
+  const response = await apiFetch("/api/v1/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+
+  if (!response.ok) return parseErrorOrThrow(response, "Authentication failed");
+  const data = await response.json();
+  if (data.token) {
+    setAuthToken(data.token);
+  }
+  return data;
+}
+
 export async function logoutUser(): Promise<void> {
   await apiFetch("/api/v1/auth/logout", { method: "POST" }).catch(() => {});
   setAuthToken(null);

@@ -56,6 +56,74 @@ class AuthService:
         self.jwt_secret = os.getenv("JWT_SECRET")
         self.database_url = os.getenv("DATABASE_URL")
 
+    def authenticate_direct(self, email: str) -> tuple[str, Session]:
+        """Authenticate a user directly against medusa_db."""
+        clean_email = email.strip().lower()
+        if not clean_email or "@" not in clean_email:
+            raise AuthError("Please enter a valid email address.")
+
+        record = None
+        if self.database_url:
+            try:
+                import psycopg2
+                from psycopg2.extras import RealDictCursor
+                with psycopg2.connect(self.database_url) as conn:
+                    with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                        cur.execute(
+                            "SELECT id, email, bits_balance, avatar_url FROM lagrieta_member WHERE LOWER(email) = %s LIMIT 1;",
+                            (clean_email,),
+                        )
+                        record = cur.fetchone()
+                        if not record:
+                            import uuid
+                            new_id = f"lgm_{uuid.uuid4().hex[:26]}"
+                            ghost_id = uuid.uuid4().hex[:24]
+                            cur.execute(
+                                """
+                                INSERT INTO lagrieta_member (id, ghost_member_id, email, bits_balance)
+                                VALUES (%s, %s, %s, %s)
+                                RETURNING id, email, bits_balance, avatar_url;
+                                """,
+                                (new_id, ghost_id, clean_email, 0),
+                            )
+                            record = cur.fetchone()
+                            conn.commit()
+            except Exception as exc:
+                log.error("Database query failed in authenticate_direct: %s", exc)
+                raise AuthError("Database connection error. Please try again.")
+
+        if not record:
+            raise AuthError("Member record not found in database.")
+
+        user_id = record["id"]
+        bits_balance = record["bits_balance"]
+        name = clean_email.split("@")[0]
+
+        jwt_secret = self.jwt_secret or "0qnZfgzMZcYW7IprA29pWHeKqSK72GWb1ArqrdFkkE"
+        import jwt
+        payload = {
+            "id": user_id,
+            "email": clean_email,
+            "role": "MEMBER",
+        }
+        token = jwt.encode(payload, jwt_secret, algorithm="HS256")
+
+        session = Session(
+            user_id=user_id,
+            role="user",
+            provider="lagrieta",
+            email=clean_email,
+            name=name,
+            b1t_balance=bits_balance,
+            quota={
+                "max_clip_seconds": 3600,
+                "max_file_size": 2 * 1024 * 1024 * 1024,
+                "daily_jobs": 100,
+                "storage_quota": 5 * 1024 * 1024 * 1024,
+            },
+        )
+        return token, session
+
     def _fetch_member_record(self, email: str | None, member_id: str | None) -> dict | None:
         if not self.database_url or (not email and not member_id):
             return None

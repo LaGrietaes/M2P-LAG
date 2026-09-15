@@ -8,6 +8,7 @@ import { isDevModeAvailable } from "../lib/devMode";
 import { useDevMode } from "../lib/devMode";
 import { ProgressRail } from "../components/ProgressRail";
 import { BuyB1tModal } from "../components/BuyB1tModal";
+import { LoginModal } from "../components/LoginModal";
 import { ExtractionProgress } from "../components/ExtractionProgress";
 import { DeliverPanel } from "../components/DeliverPanel";
 import { HeaderHUD } from "../components/HeaderHUD";
@@ -26,6 +27,7 @@ export default function Landing() {
   const [extractResult, setExtractResult] = useState<ExtractResponse | null>(null);
   const [quota, setQuota] = useState<QuotaResponse | null>(null);
   const [isBuyModalOpen, setIsBuyModalOpen] = useState(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [selectedFormatId, setSelectedFormatId] = useState<string | null>(null);
   const [editorMode, setEditorMode] = useState<"clip" | "full">("clip");
 
@@ -131,6 +133,7 @@ export default function Landing() {
       <HeaderHUD
         quota={quota}
         onOpenBuyModal={() => setIsBuyModalOpen(true)}
+        onOpenLoginModal={() => setIsLoginModalOpen(true)}
         onLogout={handleLogout}
       />
 
@@ -300,6 +303,15 @@ export default function Landing() {
         onClose={() => setIsBuyModalOpen(false)}
         onPurchased={() => {
           setIsBuyModalOpen(false);
+          getQuota().then(setQuota).catch(() => {});
+        }}
+      />
+
+      {/* Direct in-app Member Login modal */}
+      <LoginModal
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
+        onLoggedIn={() => {
           getQuota().then(setQuota).catch(() => {});
         }}
       />

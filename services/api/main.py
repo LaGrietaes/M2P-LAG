@@ -266,6 +266,47 @@ async def delete_file(file_id: str, req: Request):
     return {"status": "deleted"}
 
 
+class LoginRequest(BaseModel):
+    email: str
+
+
+@app.post("/api/v1/auth/login")
+async def direct_login(req_body: LoginRequest, request: Request, response: Response):
+    """Direct member authentication against medusa_db."""
+    try:
+        token, session = auth_service.authenticate_direct(req_body.email)
+    except AuthError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except Exception as exc:
+        log.error("Direct login failed: %s", exc)
+        raise HTTPException(status_code=500, detail="Authentication failed")
+
+    host = request.headers.get("host", "")
+    domain = ".lagrieta.es" if "lagrieta.es" in host else None
+
+    response.set_cookie(
+        key="lagrieta_sso",
+        value=token,
+        domain=domain,
+        httponly=True,
+        secure=request.url.scheme == "https" or request.headers.get("x-forwarded-proto") == "https",
+        samesite="lax",
+        max_age=86400 * 30,
+    )
+
+    return {
+        "status": "authenticated",
+        "token": token,
+        "session": {
+            "user_id": session.user_id,
+            "role": session.role,
+            "email": session.email,
+            "name": session.name,
+            "b1t_balance": session.b1t_balance,
+        },
+    }
+
+
 @app.post("/api/v1/auth/logout")
 async def auth_logout(request: Request, response: Response):
     """Log out and clear SSO cookie."""
