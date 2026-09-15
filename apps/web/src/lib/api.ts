@@ -9,7 +9,7 @@ import type {
   QuotaResponse,
   Session,
 } from "../types";
-import { getGuestToken, getAuthToken } from "./guestToken";
+import { getGuestToken, getAuthToken, setAuthToken } from "./guestToken";
 import { isDevModeAvailable, getDevRole } from "./devMode";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "";
@@ -150,4 +150,28 @@ export async function purchaseB1t(tier: number): Promise<PurchaseResponse> {
 
   if (!response.ok) return parseErrorOrThrow(response, "Failed to purchase B1T$");
   return response.json();
+}
+
+export async function loginWithEmail(email: string): Promise<{
+  status: string;
+  token: string;
+  session: Session;
+}> {
+  const response = await apiFetch("/api/v1/auth/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email }),
+  });
+
+  if (!response.ok) return parseErrorOrThrow(response, "Failed to authenticate");
+  const data = await response.json();
+  if (data.token) {
+    setAuthToken(data.token);
+  }
+  return data;
+}
+
+export async function logoutUser(): Promise<void> {
+  await apiFetch("/api/v1/auth/logout", { method: "POST" }).catch(() => {});
+  setAuthToken(null);
 }

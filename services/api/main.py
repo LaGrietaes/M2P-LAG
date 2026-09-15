@@ -9,7 +9,8 @@ import uuid
 import logging
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, Response
+from pydantic import BaseModel
 from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -263,6 +264,56 @@ async def delete_file(file_id: str, req: Request):
     storage_service.delete_file(path)
     del _jobs[file_id]
     return {"status": "deleted"}
+
+
+class LoginRequest(BaseModel):
+    email: str
+
+
+@app.post("/api/v1/auth/login")
+async def auth_login(req_body: LoginRequest, request: Request, response: Response):
+    """Direct member login via email using the shared LaGrieta database."""
+    try:
+        token, session = auth_service.login_with_email(req_body.email)
+    except Exception as exc:
+        log.warning("Login failed for %s: %s", req_body.email, exc)
+        raise HTTPException(status_code=400, detail="Invalid email or authentication failed")
+
+    host = request.headers.get("host", "")
+    domain = ".lagrieta.es" if "lagrieta.es" in host else None
+
+    response.set_cookie(
+        key="lagrieta_sso",
+        value=token,
+        domain=domain,
+        httponly=True,
+        secure=request.url.scheme == "https" or request.headers.get("x-forwarded-proto") == "https",
+        samesite="lax",
+        max_age=86400 * 30,
+    )
+
+    return {
+        "status": "authenticated",
+        "token": token,
+        "session": {
+            "user_id": session.user_id,
+            "role": session.role,
+            "email": session.email,
+            "name": session.name,
+            "b1t_balance": session.b1t_balance,
+        },
+    }
+
+
+@app.post("/api/v1/auth/logout")
+async def auth_logout(request: Request, response: Response):
+    """Log out and clear SSO cookie."""
+    host = request.headers.get("host", "")
+    domain = ".lagrieta.es" if "lagrieta.es" in host else None
+
+    response.delete_cookie("lagrieta_sso", domain=domain)
+    response.delete_cookie("lagrieta_sso")
+    return {"status": "logged_out"}
 
 
 @app.get("/api/v1/me")

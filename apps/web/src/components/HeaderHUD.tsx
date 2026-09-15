@@ -5,9 +5,16 @@ import type { QuotaResponse } from "../types";
 interface HeaderHUDProps {
   quota: QuotaResponse | null;
   onOpenBuyModal: () => void;
+  onOpenLoginModal?: () => void;
+  onLogout?: () => void;
 }
 
-export function HeaderHUD({ quota, onOpenBuyModal }: HeaderHUDProps) {
+export function HeaderHUD({
+  quota,
+  onOpenBuyModal,
+  onOpenLoginModal,
+  onLogout,
+}: HeaderHUDProps) {
   const { isDeveloper, isRegistered } = useDevMode();
 
   const isUserLoggedIn = quota?.role === "registered" || quota?.role === "user";
@@ -60,14 +67,25 @@ export function HeaderHUD({ quota, onOpenBuyModal }: HeaderHUDProps) {
           <strong className="text-accent-bright font-extrabold">{balanceText}</strong>
         </div>
 
-        {/* Log In Link for Guests */}
+        {/* Direct Login Button for Guests */}
         {!isUserLoggedIn && !(isDevModeAvailable && (isDeveloper || isRegistered)) && (
-          <a
-            href="https://beta.lagrieta.es/#/portal/signin"
-            className="px-3 py-1.5 text-xs font-mono font-bold tracking-wider uppercase text-white bg-white/5 border border-border-subtle hover:border-accent hover:text-accent transition-colors"
+          <button
+            onClick={onOpenLoginModal}
+            className="px-3 py-1.5 text-xs font-mono font-bold tracking-wider uppercase text-white bg-white/5 border border-border-subtle hover:border-accent hover:text-accent transition-colors cursor-pointer"
           >
             LOG IN
-          </a>
+          </button>
+        )}
+
+        {/* Logout Button for Logged-In Users */}
+        {isUserLoggedIn && onLogout && (
+          <button
+            onClick={onLogout}
+            className="px-2.5 py-1.5 text-xs font-mono tracking-wider uppercase text-text-secondary hover:text-white border border-transparent hover:border-border-subtle transition-colors cursor-pointer"
+            title="Log out"
+          >
+            LOG OUT
+          </button>
         )}
 
         <button
