@@ -47,6 +47,7 @@ class MetadataService:
             "quiet": True,
             "no_warnings": True,
             "skip_download": True,
+            "noplaylist": True,
             "socket_timeout": 12,
             "retries": 2,
             "extractor_retries": 2,
