@@ -38,11 +38,12 @@ class AuthMiddleware(BaseHTTPMiddleware):
         if request.url.path in public_paths:
             return await call_next(request)
 
-        # Extract bearer token
+        # Extract bearer token or SSO cookie
         auth_header = request.headers.get("Authorization", "")
         token = None
         if auth_header.startswith("Bearer "):
             token = auth_header[7:]
+        cookie_token = request.cookies.get("lagrieta_sso")
 
         # Extract guest token (spec §3 — one-time free unlimited download)
         request.state.guest_token = request.headers.get("X-M2P-Guest-Token")
@@ -59,7 +60,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
 
         # Validate token
         try:
-            session = await auth_service.validate_token(token)
+            session = await auth_service.validate_token(token, cookie_token=cookie_token)
         except AuthError as exc:
             raise HTTPException(status_code=403, detail=str(exc))
 

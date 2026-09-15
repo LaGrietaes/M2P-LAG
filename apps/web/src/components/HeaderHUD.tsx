@@ -56,6 +56,16 @@ export function HeaderHUD({ quota, onOpenBuyModal }: HeaderHUDProps) {
           <strong className="text-accent-bright font-extrabold">{balanceText}</strong>
         </div>
 
+        {/* Log In Link for Guests */}
+        {!isDeveloper && !isRegistered && quota?.role !== "registered" && quota?.role !== "user" && (
+          <a
+            href="https://beta.lagrieta.es/#/portal/signin"
+            className="px-3 py-1.5 text-xs font-mono font-bold tracking-wider uppercase text-white bg-white/5 border border-border-subtle hover:border-accent hover:text-accent transition-colors"
+          >
+            LOG IN
+          </a>
+        )}
+
         <button
           onClick={onOpenBuyModal}
           className="glitch-text-hover relative px-4 py-1.5 text-xs font-mono font-bold tracking-wider uppercase text-white bg-accent border border-accent-bright shadow-[0_0_12px_rgba(160,0,0,0.4)] hover:bg-accent-bright transition-colors"

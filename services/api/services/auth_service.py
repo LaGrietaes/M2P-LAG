@@ -38,7 +38,7 @@ class AuthError(Exception):
 
 
 class AuthService:
-    """Validates tokens against LaGrieta's LAG-Bridge endpoint.
+    """Validates tokens against LaGrieta's LAG-Bridge endpoint or direct JWT/DB.
 
     Falls back to guest session if no token is provided or validation fails.
     """
@@ -48,74 +48,120 @@ class AuthService:
             "LAG_BRIDGE_URL",
             "http://localhost:8000/api/v1/auth/validate",
         )
-        self.enabled = os.getenv("M2P_AUTH_ENABLED", "false").lower() in (
+        self.enabled = os.getenv("M2P_AUTH_ENABLED", "true").lower() in (
             "1",
             "true",
             "yes",
         )
+        self.jwt_secret = os.getenv("JWT_SECRET")
+        self.database_url = os.getenv("DATABASE_URL")
 
-    async def validate_token(self, token: str | None) -> Session:
-        """Validate a bearer token and return a session.
+    def _fetch_member_record(self, email: str | None, member_id: str | None) -> dict | None:
+        if not self.database_url or (not email and not member_id):
+            return None
+        try:
+            import psycopg2
+            from psycopg2.extras import RealDictCursor
+            with psycopg2.connect(self.database_url) as conn:
+                with conn.cursor(cursor_factory=RealDictCursor) as cur:
+                    cur.execute(
+                        "SELECT id, email, bits_balance, handle, avatar_url FROM lagrieta_member WHERE email = %s OR id = %s LIMIT 1;",
+                        (email or "", member_id or ""),
+                    )
+                    return cur.fetchone()
+        except Exception as exc:
+            log.warning("Database query failed in AuthService: %s", exc)
+            return None
+
+    async def validate_token(self, token: str | None, cookie_token: str | None = None) -> Session:
+        """Validate a bearer token or SSO cookie and return a session.
 
         Args:
-            token: Bearer token from Authorization header, or None for guest.
+            token: Bearer token from Authorization header.
+            cookie_token: lagrieta_sso cookie from request.
 
         Returns:
             Session object with user identity and quota.
-
-        Raises:
-            AuthError: if token is invalid or provider returns an error.
         """
-        if not self.enabled or not token:
+        raw_token = token or cookie_token
+        if not self.enabled or not raw_token:
             return self._guest_session()
 
         # Remove "Bearer " prefix if present
-        if token.startswith("Bearer "):
-            token = token[7:]
+        if raw_token.startswith("Bearer "):
+            raw_token = raw_token[7:]
 
-        try:
-            async with httpx.AsyncClient(timeout=5.0) as client:
-                response = await client.post(
-                    self.lag_bridge_url,
-                    headers={
-                        "Authorization": f"Bearer {token}",
-                        "Content-Type": "application/json",
+        # 1. Direct JWT Validation via JWT_SECRET (LaGrieta SSO)
+        if self.jwt_secret:
+            try:
+                import jwt
+                payload = jwt.decode(raw_token, self.jwt_secret, algorithms=["HS256"])
+                user_id = payload.get("id") or "user"
+                email = payload.get("email")
+                handle = payload.get("handle")
+
+                # Fetch live B1T$ balance from shared postgres DB
+                record = self._fetch_member_record(email, user_id)
+                bits_balance = record["bits_balance"] if record and "bits_balance" in record else 0
+                name = (record.get("handle") if record else None) or handle or (email.split("@")[0] if email else "Member")
+
+                return Session(
+                    user_id=user_id,
+                    role="user",
+                    provider="lagrieta",
+                    email=email,
+                    name=name,
+                    b1t_balance=bits_balance,
+                    quota={
+                        "max_clip_seconds": 3600,
+                        "max_file_size": 2 * 1024 * 1024 * 1024,
+                        "daily_jobs": 100,
+                        "storage_quota": 5 * 1024 * 1024 * 1024,
                     },
                 )
+            except Exception as exc:
+                log.debug("JWT decode failed: %s", exc)
 
-                if response.status_code == 401:
-                    log.warning("Auth validation failed: 401 Unauthorized")
-                    return self._guest_session()
-
-                if response.status_code == 403:
-                    log.warning("Auth validation failed: 403 Forbidden")
-                    raise AuthError("User is banned or restricted.")
-
-                if response.status_code != 200:
-                    log.warning(
-                        "Auth validation failed: %s %s",
-                        response.status_code,
-                        response.text,
+        # 2. HTTP LAG_BRIDGE validation fallback
+        if self.lag_bridge_url:
+            try:
+                async with httpx.AsyncClient(timeout=5.0) as client:
+                    response = await client.post(
+                        self.lag_bridge_url,
+                        headers={
+                            "Authorization": f"Bearer {raw_token}",
+                            "Content-Type": "application/json",
+                        },
                     )
-                    return self._guest_session()
 
-                data = response.json()
-                return Session(
-                    user_id=data.get("user_id", "unknown"),
-                    role=data.get("role", "user"),
-                    provider=data.get("provider", "unknown"),
-                    email=data.get("email"),
-                    name=data.get("name"),
-                    b1t_balance=data.get("b1t_balance", 0),
-                    quota=data.get("quota"),
-                )
+                    if response.status_code == 401:
+                        log.warning("Auth validation failed: 401 Unauthorized")
+                        return self._guest_session()
 
-        except httpx.RequestError as exc:
-            log.error("Auth service unreachable: %s", exc)
-            return self._guest_session()
-        except Exception as exc:
-            log.error("Auth validation error: %s", exc)
-            return self._guest_session()
+                    if response.status_code == 403:
+                        log.warning("Auth validation failed: 403 Forbidden")
+                        raise AuthError("User is banned or restricted.")
+
+                    if response.status_code == 200:
+                        data = response.json()
+                        return Session(
+                            user_id=data.get("user_id", "unknown"),
+                            role=data.get("role", "user"),
+                            provider=data.get("provider", "unknown"),
+                            email=data.get("email"),
+                            name=data.get("name"),
+                            b1t_balance=data.get("b1t_balance", 0),
+                            quota=data.get("quota"),
+                        )
+
+            except httpx.RequestError as exc:
+                log.error("Auth service unreachable: %s", exc)
+                return self._guest_session()
+            except Exception as exc:
+                log.error("Auth validation error: %s", exc)
+                return self._guest_session()
+
+        return self._guest_session()
 
     def dev_session(self) -> Session:
         """Fake registered-user session for local dev/testing only.

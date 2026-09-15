@@ -29,12 +29,16 @@ services:
       - MAX_CONCURRENT_DOWNLOADS=2
       - MAX_CONCURRENT_EXTRACTIONS=2
       - M2P_DEV_MODE=false
-      - M2P_DEV_CREDIT_GRANTS=false
+      - M2P_DEV_CREDIT_GRANTS=true
+      - M2P_AUTH_ENABLED=true
+      - JWT_SECRET=0qnZfgzMZcYW7IprA29pWHeKqSK72GWb1ArqrdFkkE
+      - DATABASE_URL=postgres://sinergia:kIO29Lm4GJkcfZLcmqGt5wVuLq4uDuT3@postgres:5432/medusa_db?sslmode=disable
       - ALLOW_PRIVATE_ADDRESSES=false
     volumes:
       - m2p-data:/data
     networks:
       - m2p-internal
+      - lagrieta_sinergia_network
 
 networks:
   m2p-internal:
