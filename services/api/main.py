@@ -172,6 +172,7 @@ def extract_clip(request: ExtractRequest, req: Request) -> ExtractResponse:
             end=request.end,
             session=session,
             format_id=request.format_id,
+            format=request.format,
         )
     except ExtractionError as exc:
         log.warning("Extraction failed: %s", exc)
@@ -204,7 +205,11 @@ def extract_clip(request: ExtractRequest, req: Request) -> ExtractResponse:
         "path": str(matched_path) if matched_path else None,
     }
 
-    source_ext = Path(matched_path).suffix.lstrip(".") if matched_path else "mp4"
+    source_ext = (
+        Path(matched_path).suffix.lstrip(".")
+        if matched_path
+        else (request.format or "mp4")
+    )
 
     return ExtractResponse(
         file_id=file_id,
@@ -417,6 +422,7 @@ def download_source(request: InspectRequest, req: Request) -> ExtractResponse:
             session=session,
             guest_token=guest_token,
             format_id=request.format_id,
+            format=request.format or "mp4",
         )
     except ExtractionError as exc:
         log.warning("Source download failed: %s", exc)
@@ -451,10 +457,16 @@ def download_source(request: InspectRequest, req: Request) -> ExtractResponse:
         "path": str(matched_path) if matched_path else None,
     }
 
+    source_ext = (
+        Path(matched_path).suffix.lstrip(".")
+        if matched_path
+        else (request.format or "mp4")
+    )
+
     return ExtractResponse(
         file_id=file_id,
         status="ready",
-        format="mp4",
+        format=source_ext,
         expires_at=now + ttl,
     )
 

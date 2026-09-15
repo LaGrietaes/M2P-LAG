@@ -19,6 +19,9 @@ class InspectRequest(BaseModel):
     format_id: Optional[str] = Field(
         None, description="yt-dlp format_id to download (jobs/download only)"
     )
+    format: Optional[str] = Field(
+        "mp4", description="Output container format (mp4, mp3, etc.)"
+    )
 
 
 class FormatOption(BaseModel):

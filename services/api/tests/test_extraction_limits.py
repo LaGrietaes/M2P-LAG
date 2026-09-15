@@ -24,8 +24,11 @@ class FakeExtractionService(ExtractionService):
         fake.write_bytes(b"")
         return str(fake)
 
-    def _ffmpeg_extract(self, input_path, output_path, start, end):
-        pass
+    def _ffmpeg_extract(self, input_path, output_path, start, end, **kwargs):
+        Path(output_path).write_bytes(b"")
+
+    def _transcode_to_mp3(self, input_path, output_path):
+        Path(output_path).write_bytes(b"")
 
     def storage_get_file_size_override(self, size):
         self._fake_size = size
@@ -190,3 +193,26 @@ class TestGuestFreeDownload:
             svc.extract_source(
                 url="https://example.com/v", session=session, guest_token="tok-1"
             )
+
+
+class TestAudioExtraction:
+    def test_extract_clip_mp3_format(self, tmp_data_dir, monkeypatch):
+        svc = FakeExtractionService()
+        monkeypatch.setattr(svc.storage, "get_file_size", lambda p: 1024)
+        monkeypatch.setattr(svc.storage, "delete_file", lambda p: True)
+        session = make_session(balance=10)
+        file_id = svc.extract_clip(
+            url="https://example.com/v", start=0, end=10, session=session, format="mp3"
+        )
+        assert file_id
+
+    def test_extract_source_mp3_format(self, tmp_data_dir, monkeypatch):
+        svc = FakeExtractionService()
+        monkeypatch.setattr(svc.storage, "get_file_size", lambda p: 1024)
+        monkeypatch.setattr(svc.storage, "delete_file", lambda p: True)
+        session = make_session(balance=10)
+        file_id = svc.extract_source(
+            url="https://example.com/v", session=session, format="mp3"
+        )
+        assert file_id
+

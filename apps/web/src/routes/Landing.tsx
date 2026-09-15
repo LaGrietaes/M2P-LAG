@@ -77,23 +77,24 @@ export default function Landing() {
     setView("source");
   };
 
-  const handleExtract = (start: number, end: number) => {
+  const handleExtract = (start: number, end: number, format: "mp4" | "mp3" = "mp4") => {
     if (!media) return;
     setView("extracting");
     extractMutation.mutate({
       url: media.webpage_url || media.id,
       start,
       end,
-      format: "mp4",
+      format,
       format_id: selectedFormatId ?? undefined,
     });
   };
 
-  const handleDownloadSource = () => {
+  const handleDownloadSource = (_start: number = 0, _end: number = 0, format: "mp4" | "mp3" = "mp4") => {
     if (!media) return;
     setView("extracting");
     downloadMutation.mutate({
       url: media.webpage_url || media.id,
+      format,
       format_id: selectedFormatId ?? undefined,
     });
   };

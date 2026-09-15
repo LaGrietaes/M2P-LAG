@@ -47,6 +47,7 @@ class ExtractionService:
         session,
         operation: str = "clip",
         format_id: str | None = None,
+        format: str = "mp4",
     ) -> str:
         """Extract a media segment and return the output file ID.
 
@@ -60,6 +61,7 @@ class ExtractionService:
                 response (spec §2 — real source-derived formats, not a
                 simplified quality toggle). None keeps the existing
                 bestvideo+bestaudio/best default.
+            format: target output format ("mp4", "mp3", etc.).
 
         Raises:
             ExtractionError: if validation, quota, or extraction fails.
@@ -88,14 +90,27 @@ class ExtractionService:
                 raise ExtractionError(str(exc)) from exc
 
         file_id = self._new_file_id()
+        is_mp3 = (format or "").strip().lower() == "mp3"
+        target_ext = "mp3" if is_mp3 else "mp4"
+
         source_path = self._download_source(
-            url, file_id, format_id=format_id, start=start, end=end
+            url,
+            file_id,
+            format_id=format_id,
+            start=start,
+            end=end,
+            target_format=target_ext,
         )
-        source_ext = Path(source_path).suffix.lstrip(".") or "mp4"
 
         try:
-            output_path = self.storage.get_clip_path(file_id, ext=source_ext)
-            self._ffmpeg_extract(source_path, output_path, 0, duration)
+            output_path = self.storage.get_clip_path(file_id, ext=target_ext)
+            self._ffmpeg_extract(
+                source_path,
+                output_path,
+                0,
+                duration,
+                target_format=target_ext,
+            )
 
             file_size = self.storage.get_file_size(output_path)
             if session.role == "guest" and file_size > settings.GUEST_MAX_FILE_SIZE:
@@ -106,11 +121,12 @@ class ExtractionService:
                 )
 
             log.info(
-                "Extraction complete: file_id=%s, duration=%.1fs, size=%d bytes, role=%s",
+                "Extraction complete: file_id=%s, duration=%.1fs, size=%d bytes, role=%s, format=%s",
                 file_id,
                 duration,
                 file_size,
                 session.role,
+                target_ext,
             )
             return file_id
 
@@ -123,6 +139,7 @@ class ExtractionService:
         session,
         guest_token: str | None = None,
         format_id: str | None = None,
+        format: str = "mp4",
     ) -> str:
         """Download the full source (no clip trimming) for registered users, or
         for a guest using their one-time free unlimited download (spec §3).
@@ -131,6 +148,7 @@ class ExtractionService:
             format_id: yt-dlp format_id chosen from a prior /media/inspect
                 response. None keeps the existing bestvideo+bestaudio/best
                 default.
+            format: target output format ("mp4", "mp3", etc.).
 
         Raises:
             ExtractionError: if validation, quota, or download fails.
@@ -153,30 +171,48 @@ class ExtractionService:
             is_guest_free_download = True
 
         file_id = self._new_file_id()
-        source_path = self._download_source(url, file_id, format_id=format_id)
-        source_ext = Path(source_path).suffix.lstrip(".") or "mp4"
+        is_mp3 = (format or "").strip().lower() == "mp3"
+        target_ext = "mp3" if is_mp3 else "mp4"
+
+        source_path = self._download_source(
+            url,
+            file_id,
+            format_id=format_id,
+            target_format=target_ext,
+        )
 
         try:
-            file_size = self.storage.get_file_size(Path(source_path))
+            output_path = self.storage.get_clip_path(file_id, ext=target_ext)
+
+            if is_mp3:
+                # Transcode to high quality MP3 (320k)
+                if Path(source_path).suffix.lower() == ".mp3":
+                    Path(source_path).rename(output_path)
+                else:
+                    self._transcode_to_mp3(source_path, output_path)
+            else:
+                source_ext = Path(source_path).suffix.lstrip(".") or "mp4"
+                output_path = self.storage.get_clip_path(file_id, ext=source_ext)
+                Path(source_path).rename(output_path)
+
+            file_size = self.storage.get_file_size(output_path)
 
             if session.role != "guest":
                 try:
                     self.credits.charge(session, "full_download", file_size=file_size)
                 except InsufficientCreditsError as exc:
-                    self.storage.delete_file(Path(source_path))
+                    self.storage.delete_file(output_path)
                     raise ExtractionError(str(exc)) from exc
-
-            output_path = self.storage.get_clip_path(file_id, ext=source_ext)
-            Path(source_path).rename(output_path)
 
             if is_guest_free_download:
                 self.guests.mark_free_download_used(guest_token)
 
             log.info(
-                "Source download complete: file_id=%s, size=%d bytes, role=%s",
+                "Source download complete: file_id=%s, size=%d bytes, role=%s, format=%s",
                 file_id,
                 file_size,
                 session.role,
+                target_ext,
             )
             return file_id
         except ExtractionError:
@@ -196,6 +232,7 @@ class ExtractionService:
         format_id: str | None = None,
         start: float | None = None,
         end: float | None = None,
+        target_format: str = "mp4",
     ) -> str:
         """Download source media using yt-dlp to temporary storage.
 
@@ -210,11 +247,14 @@ class ExtractionService:
         temp_dir = self.storage.temp_dir
         outtmpl = str(temp_dir / f"{file_id}.%(ext)s")
 
-        format_selector = (
-            f"{format_id}+bestaudio/{format_id}/bestvideo+bestaudio/best"
-            if format_id
-            else "bestvideo+bestaudio/best"
-        )
+        if target_format == "mp3":
+            format_selector = format_id if format_id else "bestaudio/best"
+        else:
+            format_selector = (
+                f"{format_id}+bestaudio/{format_id}/bestvideo+bestaudio/best"
+                if format_id
+                else "bestvideo+bestaudio/best"
+            )
 
         ydl_opts: dict = {
             "quiet": True,
@@ -275,27 +315,119 @@ class ExtractionService:
         output_path: str,
         start: float,
         end: float,
+        target_format: str = "mp4",
     ):
         """Use FFmpeg to extract a segment from the source media.
 
-        Uses -c copy for speed (no re-encoding). Falls back to re-encoding
-        if stream copy fails (e.g. format incompatibility).
+        Uses -c copy for video speed (no re-encoding) or libmp3lame for MP3 audio.
+        Falls back to re-encoding if stream copy fails (e.g. format incompatibility).
         """
-        cmd = [
-            self.ffmpeg_path,
-            "-y",
-            "-ss",
-            str(start),
-            "-i",
-            input_path,
-            "-t",
-            str(end - start),
-            "-c",
-            "copy",
-            "-avoid_negative_ts",
-            "make_zero",
-            str(output_path),
-        ]
+        if target_format == "mp3":
+            cmd = [
+                self.ffmpeg_path,
+                "-y",
+                "-ss",
+                str(start),
+                "-i",
+                input_path,
+                "-t",
+                str(end - start),
+                "-vn",
+                "-c:a",
+                "libmp3lame",
+                "-b:a",
+                "320k",
+                "-avoid_negative_ts",
+                "make_zero",
+                str(output_path),
+            ]
+        else:
+            cmd = [
+                self.ffmpeg_path,
+                "-y",
+                "-ss",
+                str(start),
+                "-i",
+                input_path,
+                "-t",
+                str(end - start),
+                "-c",
+                "copy",
+                "-avoid_negative_ts",
+                "make_zero",
+                str(output_path),
+            ]
+
+        log.info("FFmpeg extract: %s", " ".join(str(c) for c in cmd))
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=300,
+        )
+
+        if result.returncode != 0:
+            log.warning(
+                "Stream copy/extract failed, retrying with re-encode: %s", result.stderr
+            )
+            # Fallback: re-encode for compatibility
+            if target_format == "mp3":
+                cmd = [
+                    self.ffmpeg_path,
+                    "-y",
+                    "-ss",
+                    str(start),
+                    "-i",
+                    input_path,
+                    "-t",
+                    str(end - start),
+                    "-vn",
+                    "-c:a",
+                    "libmp3lame",
+                    "-q:a",
+                    "2",
+                    "-avoid_negative_ts",
+                    "make_zero",
+                    str(output_path),
+                ]
+            else:
+                cmd = [
+                    self.ffmpeg_path,
+                    "-y",
+                    "-ss",
+                    str(start),
+                    "-i",
+                    input_path,
+                    "-t",
+                    str(end - start),
+                    "-c:v",
+                    "libx264",
+                    "-c:a",
+                    "aac",
+                    "-preset",
+                    "fast",
+                    "-avoid_negative_ts",
+                    "make_zero",
+                    str(output_path),
+                ]
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=600,
+            )
+
+            if result.returncode != 0:
+                log.error("FFmpeg extraction failed: %s", result.stderr)
+                raise ExtractionError(
+                    "We couldn't extract the selected segment. "
+                    "The media format may not be supported."
+                )
+
+        if not Path(output_path).exists():
+            raise ExtractionError(
+                "Extraction completed but no output file was produced."
+            )
 
         log.info("FFmpeg extract: %s", " ".join(str(c) for c in cmd))
         result = subprocess.run(
@@ -347,3 +479,23 @@ class ExtractionService:
             raise ExtractionError(
                 "Extraction completed but no output file was produced."
             )
+
+    def _transcode_to_mp3(self, input_path: str | Path, output_path: str | Path):
+        """Transcode an audio or video file to 320k MP3."""
+        cmd = [
+            self.ffmpeg_path,
+            "-y",
+            "-i",
+            str(input_path),
+            "-vn",
+            "-c:a",
+            "libmp3lame",
+            "-b:a",
+            "320k",
+            str(output_path),
+        ]
+        log.info("FFmpeg full audio transcode: %s", " ".join(cmd))
+        res = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+        if res.returncode != 0 or not Path(output_path).exists():
+            log.error("FFmpeg audio transcode failed: %s", res.stderr)
+            raise ExtractionError("Failed to convert audio to MP3 format.")

@@ -20,7 +20,7 @@ type AudioPreset = "mp3" | "original";
 
 interface ClipEditorProps {
   media: InspectResponse;
-  onExtract: (start: number, end: number) => void;
+  onExtract: (start: number, end: number, format: "mp4" | "mp3") => void;
   isExtracting: boolean;
   maxClipSeconds: number | null;
   selectedFormatId: string | null;
@@ -128,9 +128,10 @@ export function ClipEditor({
   };
 
   const handleExtract = () => {
+    const targetFormat = primaryTrack === "audio" ? "mp3" : "mp4";
     if (mode === "full") {
       setShowError(null);
-      onExtract(0, duration);
+      onExtract(0, duration, targetFormat);
       return;
     }
     if (selectedDuration <= 0) {
@@ -145,7 +146,7 @@ export function ClipEditor({
       return;
     }
     setShowError(null);
-    onExtract(inPoint, outPoint);
+    onExtract(inPoint, outPoint, targetFormat);
   };
 
   const switchClass = (active: boolean) =>
@@ -354,8 +355,7 @@ export function ClipEditor({
             </button>
           </div>
           <p className="text-[11px] font-mono text-text-secondary/70 pt-1">
-            Audio-only extraction isn&apos;t available yet — download currently
-            produces the video file.
+            Extracts audio stream encoded in high-quality 320kbps MP3.
           </p>
         </div>
       )}

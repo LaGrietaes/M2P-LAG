@@ -5,6 +5,7 @@ export const InspectRequestSchema = z.object({
   // Only meaningful when this schema is used for POST /jobs/download
   // (full-source download); ignored by /media/inspect.
   format_id: z.string().optional(),
+  format: z.string().optional(),
 });
 
 export const FormatOptionSchema = z.object({
