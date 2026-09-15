@@ -8,7 +8,6 @@ import { isDevModeAvailable } from "../lib/devMode";
 import { useDevMode } from "../lib/devMode";
 import { ProgressRail } from "../components/ProgressRail";
 import { BuyB1tModal } from "../components/BuyB1tModal";
-import { LoginModal } from "../components/LoginModal";
 import { ExtractionProgress } from "../components/ExtractionProgress";
 import { DeliverPanel } from "../components/DeliverPanel";
 import { HeaderHUD } from "../components/HeaderHUD";
@@ -16,6 +15,7 @@ import { AmbientBackground } from "../components/AmbientBackground";
 import { LaGrietaFooter } from "../components/LaGrietaFooter";
 import { useMutation } from "@tanstack/react-query";
 import { extractClip, downloadSource, getQuota, logoutUser } from "../lib/api";
+import { setAuthToken } from "../lib/guestToken";
 import type { InspectResponse, ExtractResponse, QuotaResponse } from "../types";
 
 type ViewState = "input" | "source" | "configure" | "extracting" | "result";
@@ -26,13 +26,21 @@ export default function Landing() {
   const [extractResult, setExtractResult] = useState<ExtractResponse | null>(null);
   const [quota, setQuota] = useState<QuotaResponse | null>(null);
   const [isBuyModalOpen, setIsBuyModalOpen] = useState(false);
-  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [selectedFormatId, setSelectedFormatId] = useState<string | null>(null);
   const [editorMode, setEditorMode] = useState<"clip" | "full">("clip");
 
   const { isDeveloper } = useDevMode();
 
   useEffect(() => {
+    // 1. Process SSO callback token if present in URL
+    const params = new URLSearchParams(window.location.search);
+    const ssoToken = params.get("token");
+    if (ssoToken) {
+      setAuthToken(ssoToken);
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
+    // 2. Fetch live quota and B1T$ balance
     getQuota()
       .then(setQuota)
       .catch(() => setQuota(null));
@@ -123,7 +131,6 @@ export default function Landing() {
       <HeaderHUD
         quota={quota}
         onOpenBuyModal={() => setIsBuyModalOpen(true)}
-        onOpenLoginModal={() => setIsLoginModalOpen(true)}
         onLogout={handleLogout}
       />
 
@@ -293,16 +300,6 @@ export default function Landing() {
         onClose={() => setIsBuyModalOpen(false)}
         onPurchased={() => {
           setIsBuyModalOpen(false);
-          getQuota().then(setQuota).catch(() => {});
-        }}
-      />
-
-      {/* Login modal */}
-      <LoginModal
-        isOpen={isLoginModalOpen}
-        onClose={() => setIsLoginModalOpen(false)}
-        onLoggedIn={() => {
-          setIsLoginModalOpen(false);
           getQuota().then(setQuota).catch(() => {});
         }}
       />

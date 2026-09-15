@@ -5,14 +5,12 @@ import type { QuotaResponse } from "../types";
 interface HeaderHUDProps {
   quota: QuotaResponse | null;
   onOpenBuyModal: () => void;
-  onOpenLoginModal?: () => void;
   onLogout?: () => void;
 }
 
 export function HeaderHUD({
   quota,
   onOpenBuyModal,
-  onOpenLoginModal,
   onLogout,
 }: HeaderHUDProps) {
   const { isDeveloper, isRegistered } = useDevMode();
@@ -67,14 +65,14 @@ export function HeaderHUD({
           <strong className="text-accent-bright font-extrabold">{balanceText}</strong>
         </div>
 
-        {/* Direct Login Button for Guests */}
+        {/* 1-Click LaGrieta SSO Login Button for Guests */}
         {!isUserLoggedIn && !(isDevModeAvailable && (isDeveloper || isRegistered)) && (
-          <button
-            onClick={onOpenLoginModal}
-            className="px-3 py-1.5 text-xs font-mono font-bold tracking-wider uppercase text-white bg-white/5 border border-border-subtle hover:border-accent hover:text-accent transition-colors cursor-pointer"
+          <a
+            href="https://beta.lagrieta.es/api-sinergias/sso/m2p?return_to=https://m2p.lagrieta.es"
+            className="px-3 py-1.5 text-xs font-mono font-bold tracking-wider uppercase text-white bg-white/5 border border-border-subtle hover:border-accent hover:text-accent transition-colors cursor-pointer inline-flex items-center gap-1.5"
           >
-            LOG IN
-          </button>
+            <span>LOG IN</span>
+          </a>
         )}
 
         {/* Logout Button for Logged-In Users */}

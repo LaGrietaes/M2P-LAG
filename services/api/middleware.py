@@ -32,7 +32,6 @@ class AuthMiddleware(BaseHTTPMiddleware):
             "/health",
             "/version",
             "/api/v1/media/inspect",
-            "/api/v1/auth/login",
             "/api/v1/auth/logout",
             "/docs",
             "/openapi.json",
