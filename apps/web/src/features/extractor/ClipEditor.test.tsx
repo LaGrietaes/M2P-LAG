@@ -70,7 +70,7 @@ describe('ClipEditor duration cap', () => {
     fireEvent.click(screen.getByRole('button', { name: /download clip/i }))
 
     expect(screen.queryByText(/exceeds/i)).not.toBeInTheDocument()
-    expect(onExtract).toHaveBeenCalledWith(0, 600)
+    expect(onExtract).toHaveBeenCalledWith(0, 600, 'mp4')
   })
 
   it('does not render a video element', () => {

@@ -25,6 +25,11 @@ const storedTheme = localStorage.getItem('m2p-theme')
 const theme = storedTheme === 'light' || storedTheme === 'dark' ? storedTheme : 'dark'
 document.documentElement.setAttribute('data-theme', theme)
 
+// Clear legacy api-cache from Service Worker if present
+if (typeof window !== 'undefined' && 'caches' in window) {
+  window.caches.delete('api-cache').catch(() => {})
+}
+
 const queryClient = new QueryClient()
 
 createRoot(document.getElementById('root')!).render(

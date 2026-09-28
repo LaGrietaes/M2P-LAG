@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /transfers/
+Disallow: /d/
+
+Sitemap: https://m2p.lagrieta.es/sitemap.xml

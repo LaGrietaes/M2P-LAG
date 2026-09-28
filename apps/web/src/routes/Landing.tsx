@@ -87,7 +87,7 @@ export default function Landing() {
       start,
       end,
       format,
-      format_id: selectedFormatId ?? undefined,
+      format_id: format === "mp3" ? undefined : (selectedFormatId ?? undefined),
     });
   };
 
@@ -97,7 +97,7 @@ export default function Landing() {
     downloadMutation.mutate({
       url: media.webpage_url || media.id,
       format,
-      format_id: selectedFormatId ?? undefined,
+      format_id: format === "mp3" ? undefined : (selectedFormatId ?? undefined),
     });
   };
 

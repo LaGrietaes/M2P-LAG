@@ -1,25 +1,58 @@
+import path from 'path'
+import { fileURLToPath } from 'url'
+import { createRequire } from 'module'
+import fs from 'fs'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+
+const require = createRequire(import.meta.url)
+const vitePrerender = require('vite-plugin-prerender')
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+
+const getChromeExecutablePath = () => {
+  if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+    return process.env.PUPPETEER_EXECUTABLE_PATH
+  }
+  if (process.platform === 'win32') {
+    const chromePath = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
+    const edgePath = 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe'
+    if (fs.existsSync(chromePath)) return chromePath
+    if (fs.existsSync(edgePath)) return edgePath
+  } else if (process.platform === 'linux') {
+    const linuxPaths = [
+      '/usr/bin/chromium-browser',
+      '/usr/bin/chromium',
+      '/usr/bin/google-chrome-stable',
+      '/usr/bin/google-chrome',
+    ]
+    for (const p of linuxPaths) {
+      if (fs.existsSync(p)) return p
+    }
+  }
+  return undefined
+}
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
     react(),
+    vitePrerender({
+      staticDir: path.join(__dirname, 'dist'),
+      routes: ['/'],
+      renderer: new vitePrerender.PuppeteerRenderer({
+        renderAfterTime: 1000,
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu'],
+        executablePath: getChromeExecutablePath(),
+      }),
+    }),
     VitePWA({
       registerType: 'autoUpdate',
       workbox: {
-        runtimeCaching: [
-          {
-            // Cache API responses (inspect results, etc.)
-            urlPattern: ({ url }) => url.pathname.startsWith('/api/'),
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'api-cache',
-              expiration: { maxEntries: 100, maxAgeSeconds: 60 },
-            },
-          },
-        ],
+        navigateFallbackDenylist: [/^\/api/],
       },
       manifest: {
         name: 'M2P — Media Server 2 Peer',

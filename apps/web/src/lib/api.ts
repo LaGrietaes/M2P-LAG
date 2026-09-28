@@ -61,6 +61,38 @@ export async function inspectMedia(
   return response.json();
 }
 
+async function pollJobUntilReady(
+  fileId: string,
+  initialFormat?: string | null,
+  initialExpiresAt?: number | null,
+): Promise<ExtractResponse> {
+  const pollIntervalMs = 2000;
+  const maxAttempts = 900; // 30 minutes max
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+    try {
+      const job = await getJob(fileId);
+      if (job.status === "ready") {
+        return {
+          file_id: job.file_id || fileId,
+          status: "ready",
+          format: initialFormat ?? "mp4",
+          expires_at: job.expires_at ?? initialExpiresAt ?? null,
+        };
+      }
+      if (job.status === "failed") {
+        throw new Error(job.error || "Download processing failed");
+      }
+    } catch (err) {
+      if (err instanceof Error && err.message !== "Failed to get job status") {
+        throw err;
+      }
+      // Temporary network blip during getJob polling, continue
+    }
+  }
+  throw new Error("Download preparation timed out. Please try again.");
+}
+
 export async function extractClip(
   request: ExtractRequest,
 ): Promise<ExtractResponse> {
@@ -71,7 +103,11 @@ export async function extractClip(
   });
 
   if (!response.ok) return parseErrorOrThrow(response, "Failed to extract clip");
-  return response.json();
+  const data: ExtractResponse = await response.json();
+  if (data.status === "processing") {
+    return pollJobUntilReady(data.file_id, data.format, data.expires_at);
+  }
+  return data;
 }
 
 export async function downloadSource(
@@ -84,7 +120,11 @@ export async function downloadSource(
   });
 
   if (!response.ok) return parseErrorOrThrow(response, "Failed to download source");
-  return response.json();
+  const data: ExtractResponse = await response.json();
+  if (data.status === "processing") {
+    return pollJobUntilReady(data.file_id, data.format, data.expires_at);
+  }
+  return data;
 }
 
 export async function getJob(jobId: string): Promise<JobResponse> {

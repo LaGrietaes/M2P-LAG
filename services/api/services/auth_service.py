@@ -164,27 +164,37 @@ class AuthService:
             try:
                 import jwt
                 payload = jwt.decode(raw_token, self.jwt_secret, algorithms=["HS256"])
-                user_id = payload.get("id") or "user"
+                user_id = payload.get("sub") or payload.get("id") or "user"
                 email = payload.get("email")
                 handle = payload.get("handle")
+                staff_role = payload.get("staffRole") or "NONE"
+                sso_role = payload.get("role") or "FREE"
+                token_b1t = payload.get("b1tBalance")
 
-                # Fetch live B1T$ balance from shared postgres DB
+                # Fetch live B1T$ balance from shared postgres DB if reachable, else use token claim
                 record = self._fetch_member_record(email, user_id)
-                bits_balance = record["bits_balance"] if record and "bits_balance" in record else 0
+                if record and "bits_balance" in record and record["bits_balance"] is not None:
+                    bits_balance = record["bits_balance"]
+                elif token_b1t is not None:
+                    bits_balance = int(token_b1t)
+                else:
+                    bits_balance = 555
+
                 name = (record.get("handle") if record else None) or handle or (email.split("@")[0] if email else "Member")
+                is_vip_staff = staff_role in ["DIR", "STAFF", "ADMIN"]
 
                 return Session(
                     user_id=user_id,
-                    role="user",
+                    role="admin" if is_vip_staff else "user",
                     provider="lagrieta",
                     email=email,
                     name=name,
                     b1t_balance=bits_balance,
                     quota={
-                        "max_clip_seconds": 3600,
-                        "max_file_size": 2 * 1024 * 1024 * 1024,
-                        "daily_jobs": 100,
-                        "storage_quota": 5 * 1024 * 1024 * 1024,
+                        "max_clip_seconds": 7200 if is_vip_staff else 3600,
+                        "max_file_size": (10 if is_vip_staff else 2) * 1024 * 1024 * 1024,
+                        "daily_jobs": 500 if is_vip_staff else 100,
+                        "storage_quota": (50 if is_vip_staff else 5) * 1024 * 1024 * 1024,
                     },
                 )
             except Exception as exc:

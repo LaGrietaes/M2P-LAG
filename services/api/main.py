@@ -7,6 +7,7 @@ import os
 import time
 import uuid
 import logging
+import threading
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request, Response
@@ -15,6 +16,7 @@ from fastapi.responses import FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 
 from config import settings
+from security.url_guard import validate_url
 from models import (
     InspectRequest,
     InspectResponse,
@@ -225,7 +227,29 @@ async def get_job(job_id: str) -> JobResponse:
     """Get job status (§14)."""
     job = _jobs.get(job_id)
     if not job:
+        # Check disk fallback if server restarted or job evicted
+        clip_dir = storage_service.clips_dir
+        matched_path = next(
+            (p for p in clip_dir.iterdir() if p.stem.startswith(job_id)), None
+        )
+        if matched_path:
+            return JobResponse(
+                id=job_id,
+                status="ready",
+                file_id=job_id,
+                created_at=time.time(),
+            )
         raise HTTPException(status_code=404, detail="Job not found")
+
+    if job.get("status") == "processing":
+        clip_dir = storage_service.clips_dir
+        matched_path = next(
+            (p for p in clip_dir.iterdir() if p.stem.startswith(job_id)), None
+        )
+        if matched_path:
+            job["status"] = "ready"
+            job["path"] = str(matched_path)
+
     return JobResponse(**job)
 
 
@@ -233,16 +257,23 @@ async def get_job(job_id: str) -> JobResponse:
 async def download_file(file_id: str, req: Request):
     """Download an extracted file, restricted to its owner (spec §2)."""
     job = _jobs.get(file_id)
-    if not job or not job.get("path"):
-        raise HTTPException(status_code=404, detail="File not found")
-
     session = _session_from_request(req)
     guest_token = getattr(req.state, "guest_token", None)
 
-    if job["owner"] != _owner_key(session, guest_token):
-        raise HTTPException(status_code=403, detail="You do not have access to this file.")
+    if job and job.get("path"):
+        if job["owner"] != _owner_key(session, guest_token):
+            raise HTTPException(status_code=403, detail="You do not have access to this file.")
+        path = Path(job["path"])
+    else:
+        clip_dir = storage_service.clips_dir
+        matched_path = next(
+            (p for p in clip_dir.iterdir() if p.stem.startswith(file_id)), None
+        )
+        if matched_path and matched_path.exists():
+            path = matched_path
+        else:
+            raise HTTPException(status_code=404, detail="File not found")
 
-    path = Path(job["path"])
     if not path.exists():
         raise HTTPException(status_code=404, detail="File not found")
 
@@ -405,47 +436,60 @@ def download_source(request: InspectRequest, req: Request) -> ExtractResponse:
 
     Registered users: unlimited, B1T$-gated. Guests: one free unlimited
     download per guest_token, then rejected.
+    Executed in a background thread to prevent Cloudflare / proxy 504 timeouts.
     """
     session = _session_from_request(req)
     guest_token = getattr(req.state, "guest_token", None)
 
+    # 1. Validation before backgrounding
+    error = validate_url(request.url, allow_private=settings.ALLOW_PRIVATE_ADDRESSES)
+    if error:
+        raise HTTPException(status_code=422, detail=error)
+
+    owner = _owner_key(session, guest_token)
+
+    if session.role == "guest":
+        if not guest_token:
+            raise HTTPException(
+                status_code=403,
+                detail="Source downloads require a guest token or registration.",
+            )
+        guest_service = GuestService()
+        if guest_service.has_used_free_download(guest_token):
+            raise HTTPException(
+                status_code=403,
+                detail="Free download already used. Register or buy B1T$ for more downloads.",
+            )
+        # If this guest already has a job currently processing, reuse it
+        for j_id, j_data in _jobs.items():
+            if j_data.get("owner") == owner and j_data.get("status") == "processing":
+                return ExtractResponse(
+                    file_id=j_id,
+                    status="processing",
+                    format=request.format or "mp4",
+                    expires_at=j_data.get("expires_at"),
+                )
+    else:
+        if session.b1t_balance <= 0:
+            raise HTTPException(
+                status_code=402,
+                detail="Insufficient B1T$ credits to download source.",
+            )
+
     log.info(
-        "Source download requested: url=%s, user=%s, role=%s",
+        "Source download initiated: url=%s, user=%s, role=%s",
         request.url,
         session.user_id,
         session.role,
     )
 
-    try:
-        file_id = extraction_service.extract_source(
-            url=request.url,
-            session=session,
-            guest_token=guest_token,
-            format_id=request.format_id,
-            format=request.format or "mp4",
-        )
-    except ExtractionError as exc:
-        log.warning("Source download failed: %s", exc)
-        status = 403 if "already used" in str(exc) or "registration" in str(exc) else 422
-        if "Insufficient" in str(exc):
-            status = 402
-        raise HTTPException(status_code=status, detail=str(exc))
-    except Exception as exc:
-        log.error("Unexpected download error: %s", exc)
-        raise HTTPException(
-            status_code=500,
-            detail="An unexpected error occurred during download.",
-        )
-
+    file_id = uuid.uuid4().hex
     now = time.time()
     ttl = int(os.getenv("CLIP_TTL_SECONDS", "3600"))
-    clip_dir = storage_service.clips_dir
-    matched_path = next(
-        (p for p in clip_dir.iterdir() if p.stem.startswith(file_id)), None
-    )
+
     _jobs[file_id] = {
         "id": file_id,
-        "status": "ready",
+        "status": "processing",
         "media_id": None,
         "start": None,
         "end": None,
@@ -453,20 +497,46 @@ def download_source(request: InspectRequest, req: Request) -> ExtractResponse:
         "error": None,
         "created_at": now,
         "expires_at": now + ttl,
-        "owner": _owner_key(session, guest_token),
-        "path": str(matched_path) if matched_path else None,
+        "owner": owner,
+        "path": None,
     }
 
-    source_ext = (
-        Path(matched_path).suffix.lstrip(".")
-        if matched_path
-        else (request.format or "mp4")
-    )
+    def _execute_download():
+        try:
+            extraction_service.extract_source(
+                url=request.url,
+                session=session,
+                guest_token=guest_token,
+                format_id=request.format_id,
+                format=request.format or "mp4",
+                file_id=file_id,
+            )
+            clip_dir = storage_service.clips_dir
+            matched_path = next(
+                (p for p in clip_dir.iterdir() if p.stem.startswith(file_id)), None
+            )
+            if file_id in _jobs:
+                _jobs[file_id]["status"] = "ready"
+                _jobs[file_id]["path"] = str(matched_path) if matched_path else None
+                log.info("Background download completed for file_id=%s", file_id)
+        except ExtractionError as exc:
+            log.warning("Background extraction failed for %s: %s", file_id, exc)
+            if file_id in _jobs:
+                _jobs[file_id]["status"] = "failed"
+                _jobs[file_id]["error"] = str(exc)
+        except Exception as exc:
+            log.error("Unexpected background download error for %s: %s", file_id, exc)
+            if file_id in _jobs:
+                _jobs[file_id]["status"] = "failed"
+                _jobs[file_id]["error"] = "An unexpected error occurred during download."
+
+    thread = threading.Thread(target=_execute_download, daemon=True)
+    thread.start()
 
     return ExtractResponse(
         file_id=file_id,
-        status="ready",
-        format=source_ext,
+        status="processing",
+        format=request.format or "mp4",
         expires_at=now + ttl,
     )
 

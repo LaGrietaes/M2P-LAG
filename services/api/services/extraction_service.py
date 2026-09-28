@@ -140,6 +140,7 @@ class ExtractionService:
         guest_token: str | None = None,
         format_id: str | None = None,
         format: str = "mp4",
+        file_id: str | None = None,
     ) -> str:
         """Download the full source (no clip trimming) for registered users, or
         for a guest using their one-time free unlimited download (spec §3).
@@ -149,6 +150,7 @@ class ExtractionService:
                 response. None keeps the existing bestvideo+bestaudio/best
                 default.
             format: target output format ("mp4", "mp3", etc.).
+            file_id: optional pre-assigned file ID for async job tracking.
 
         Raises:
             ExtractionError: if validation, quota, or download fails.
@@ -170,7 +172,8 @@ class ExtractionService:
                 )
             is_guest_free_download = True
 
-        file_id = self._new_file_id()
+        if not file_id:
+            file_id = self._new_file_id()
         is_mp3 = (format or "").strip().lower() == "mp3"
         target_ext = "mp3" if is_mp3 else "mp4"
 
@@ -246,7 +249,12 @@ class ExtractionService:
         outtmpl = str(temp_dir / f"{file_id}.%(ext)s")
 
         if target_format == "mp3":
-            format_selector = format_id if format_id else "bestaudio/best"
+            # For audio downloads, never download full video streams even if the client
+            # passed a video format_id from the video UI tab.
+            if format_id and ("audio" in format_id.lower() or "ba" in format_id.lower()):
+                format_selector = f"{format_id}/bestaudio/best"
+            else:
+                format_selector = "bestaudio/best"
         else:
             format_selector = (
                 f"{format_id}+bestaudio/{format_id}/bestvideo+bestaudio/best"
@@ -257,11 +265,15 @@ class ExtractionService:
         ydl_opts: dict = {
             "quiet": True,
             "no_warnings": True,
-            "socket_timeout": 30,
+            "socket_timeout": 60,
             "format": format_selector,
             "outtmpl": outtmpl,
             "noplaylist": True,
             "ffmpeg_location": self.ffmpeg_path,
+            "concurrent_fragment_downloads": 5,
+            "buffersize": 1024 * 1024,
+            "http_chunk_size": 10485760,
+            "retries": 3,
             # Browser-like user agent to reduce bot detection
             "http_headers": {
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
@@ -477,6 +489,8 @@ class ExtractionService:
         cmd = [
             self.ffmpeg_path,
             "-y",
+            "-threads",
+            "0",
             "-i",
             str(input_path),
             "-vn",
@@ -487,7 +501,7 @@ class ExtractionService:
             str(output_path),
         ]
         log.info("FFmpeg full audio transcode: %s", " ".join(cmd))
-        res = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
+        res = subprocess.run(cmd, capture_output=True, text=True, timeout=1200)
         if res.returncode != 0 or not Path(output_path).exists():
             log.error("FFmpeg audio transcode failed: %s", res.stderr)
             raise ExtractionError("Failed to convert audio to MP3 format.")
