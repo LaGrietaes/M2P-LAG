@@ -10,6 +10,9 @@ services:
     restart: unless-stopped
     ports:
       - "127.0.0.1:5173:80"
+    volumes:
+      - ./apps/web/dist:/usr/share/nginx/html:ro
+      - ./infra/nginx/m2p.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
       - m2p-api
     networks:
@@ -36,6 +39,7 @@ services:
       - ALLOW_PRIVATE_ADDRESSES=false
     volumes:
       - m2p-data:/data
+      - ./services/api:/app
     networks:
       - m2p-internal
       - lagrieta_sinergia_network
