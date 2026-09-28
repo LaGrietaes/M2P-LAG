@@ -236,20 +236,28 @@ export function DeliverPanel({
           {/* Main download button */}
           <Button
             onClick={handleDownload}
-            disabled={downloadState === "pending"}
+            disabled={downloadState === "pending" || remaining === 0}
             className="w-full py-4 text-lg"
           >
-            {downloadState === "pending" ? "PREPARING…" : "DOWNLOAD FILE"}
+            {remaining === 0
+              ? "FILE EXPIRED"
+              : downloadState === "pending"
+              ? "PREPARING…"
+              : "DOWNLOAD FILE"}
           </Button>
 
           {/* Countdown timer - restored directly under the download button */}
           {remaining !== null && (
             <div className="flex items-center justify-center gap-3 px-4 py-2 bg-[#040508]/80 border border-border-subtle text-xs">
               <span className="font-mono text-text-secondary animate-pulse">
-                FILE AVAILABLE FOR:
+                {remaining > 0 ? "FILE AVAILABLE FOR:" : "FILE STATUS:"}
               </span>
-              <span className="font-mono text-sm text-accent tabular-nums font-bold">
-                {formatRemaining(remaining)}
+              <span
+                className={`font-mono text-sm tabular-nums font-bold ${
+                  remaining > 0 ? "text-accent" : "text-accent-error"
+                }`}
+              >
+                {remaining > 0 ? formatRemaining(remaining) : "EXPIRED (PURGED)"}
               </span>
             </div>
           )}

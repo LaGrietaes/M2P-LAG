@@ -8,6 +8,8 @@ import time
 import uuid
 import logging
 import threading
+import asyncio
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request, Response
@@ -42,10 +44,53 @@ logging.basicConfig(
 )
 log = logging.getLogger("m2p.api")
 
+metadata_service = MetadataService()
+extraction_service = ExtractionService()
+storage_service = StorageService()
+cleanup_service = CleanupService()
+auth_service = AuthService()
+
+# ── In-memory job store (Phase 3 — no DB, §31) ──────────────────────────
+_jobs: dict[str, dict] = {}
+
+
+async def _cleanup_loop():
+    """Background task running every 60 seconds to prune expired files and jobs."""
+    while True:
+        try:
+            await asyncio.sleep(60)
+            await asyncio.to_thread(cleanup_service.run)
+            now = time.time()
+            expired_ids = [
+                j_id for j_id, j in list(_jobs.items())
+                if j.get("expires_at") and j["expires_at"] < now
+            ]
+            for j_id in expired_ids:
+                _jobs.pop(j_id, None)
+        except asyncio.CancelledError:
+            break
+        except Exception as exc:
+            log.error("Error in background cleanup loop: %s", exc)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Run once at startup immediately to clean leftover files from previous run
+    asyncio.create_task(asyncio.to_thread(cleanup_service.run))
+    cleanup_task = asyncio.create_task(_cleanup_loop())
+    yield
+    cleanup_task.cancel()
+    try:
+        await cleanup_task
+    except asyncio.CancelledError:
+        pass
+
+
 app = FastAPI(
     title="M2P API",
     description="Media Server 2 Peer — API",
     version=settings.VERSION,
+    lifespan=lifespan,
 )
 
 # ── CORS (§19) ──────────────────────────────────────────────────────────
@@ -63,18 +108,9 @@ app.add_middleware(
     RateLimitMiddleware, max_requests=100, window_seconds=60
 )
 
-# ── Services (§07) ──────────────────────────────────────────────────────
-metadata_service = MetadataService()
-extraction_service = ExtractionService()
-storage_service = StorageService()
-cleanup_service = CleanupService()
-auth_service = AuthService()
 # Note: GuestService is constructed fresh per-request in get_quota (below)
 # rather than as a module-level singleton, so tests that monkeypatch
 # settings.DATA_DIR after import still see the correct data dir.
-
-# ── In-memory job store (Phase 3 — no DB, §31) ──────────────────────────
-_jobs: dict[str, dict] = {}
 
 
 def _owner_key(session, guest_token: str | None) -> str:
@@ -226,6 +262,15 @@ def extract_clip(request: ExtractRequest, req: Request) -> ExtractResponse:
 async def get_job(job_id: str) -> JobResponse:
     """Get job status (§14)."""
     job = _jobs.get(job_id)
+    now = time.time()
+    ttl = int(os.getenv("CLIP_TTL_SECONDS", "3600"))
+
+    if job and job.get("expires_at") and now > job["expires_at"]:
+        if job.get("path"):
+            storage_service.delete_file(job["path"])
+        _jobs.pop(job_id, None)
+        raise HTTPException(status_code=404, detail="Job has expired")
+
     if not job:
         # Check disk fallback if server restarted or job evicted
         clip_dir = storage_service.clips_dir
@@ -233,11 +278,16 @@ async def get_job(job_id: str) -> JobResponse:
             (p for p in clip_dir.iterdir() if p.stem.startswith(job_id)), None
         )
         if matched_path:
+            age = now - matched_path.stat().st_mtime
+            if age > ttl:
+                storage_service.delete_file(matched_path)
+                raise HTTPException(status_code=404, detail="Job has expired")
             return JobResponse(
                 id=job_id,
                 status="ready",
                 file_id=job_id,
-                created_at=time.time(),
+                created_at=matched_path.stat().st_mtime,
+                expires_at=matched_path.stat().st_mtime + ttl,
             )
         raise HTTPException(status_code=404, detail="Job not found")
 
@@ -259,6 +309,15 @@ async def download_file(file_id: str, req: Request):
     job = _jobs.get(file_id)
     session = _session_from_request(req)
     guest_token = getattr(req.state, "guest_token", None)
+    now = time.time()
+    ttl = int(os.getenv("CLIP_TTL_SECONDS", "3600"))
+
+    # Check if job expired
+    if job and job.get("expires_at") and now > job["expires_at"]:
+        if job.get("path"):
+            storage_service.delete_file(job["path"])
+        _jobs.pop(file_id, None)
+        raise HTTPException(status_code=404, detail="File has expired")
 
     if job and job.get("path"):
         if job["owner"] != _owner_key(session, guest_token):
@@ -270,6 +329,10 @@ async def download_file(file_id: str, req: Request):
             (p for p in clip_dir.iterdir() if p.stem.startswith(file_id)), None
         )
         if matched_path and matched_path.exists():
+            age = now - matched_path.stat().st_mtime
+            if age > ttl:
+                storage_service.delete_file(matched_path)
+                raise HTTPException(status_code=404, detail="File has expired")
             path = matched_path
         else:
             raise HTTPException(status_code=404, detail="File not found")

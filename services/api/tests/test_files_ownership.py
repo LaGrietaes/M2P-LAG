@@ -1,3 +1,4 @@
+import time
 from fastapi.testclient import TestClient
 
 import main as main_module
@@ -176,3 +177,55 @@ def test_guest_extract_without_token_is_rejected(tmp_data_dir):
     )
     assert resp.status_code == 422
     assert not main_module._jobs
+
+
+def test_expired_file_is_rejected_and_deleted(tmp_data_dir):
+    """Files requested after TTL must return 404 and be deleted from disk."""
+    _reset_jobs()
+    clips_dir = main_module.storage_service.clips_dir
+    clips_dir.mkdir(parents=True, exist_ok=True)
+    file_path = clips_dir / "exp123_deadbeef.mp4"
+    file_path.write_bytes(b"old video bytes")
+
+    main_module._jobs["exp123"] = {
+        "id": "exp123",
+        "status": "ready",
+        "media_id": None,
+        "start": 0,
+        "end": 10,
+        "file_id": "exp123",
+        "error": None,
+        "created_at": 1000,
+        "expires_at": 2000,  # Far in the past
+        "owner": "guest:tok-1",
+        "path": str(file_path),
+    }
+
+    resp = client.get(
+        "/api/v1/files/exp123", headers={"X-M2P-Guest-Token": "tok-1"}
+    )
+    assert resp.status_code == 404
+    assert not file_path.exists()
+    assert "exp123" not in main_module._jobs
+
+
+def test_cleanup_service_removes_expired_clips_after_ttl(tmp_data_dir, monkeypatch):
+    """Cleanup service deletes clips older than CLIP_TTL_SECONDS without touching fresh ones."""
+    clips_dir = main_module.storage_service.clips_dir
+    clips_dir.mkdir(parents=True, exist_ok=True)
+
+    old_file = clips_dir / "old123_clip.mp4"
+    old_file.write_bytes(b"old")
+    import os
+    # Set mtime to 3700 seconds ago (older than 3600s TTL)
+    old_mtime = time.time() - 3700
+    os.utime(old_file, (old_mtime, old_mtime))
+
+    new_file = clips_dir / "new123_clip.mp4"
+    new_file.write_bytes(b"new")
+
+    main_module.cleanup_service.run()
+
+    assert not old_file.exists()
+    assert new_file.exists()
+

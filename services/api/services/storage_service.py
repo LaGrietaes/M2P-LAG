@@ -67,16 +67,19 @@ class StorageService:
             log.warning("Failed to delete %s: %s", path, exc)
         return False
 
-    def cleanup_expired(self, ttl_seconds: int = 3600):
-        """Delete files older than ttl_seconds in clips and temp dirs (§30)."""
+    def cleanup_expired(self, ttl_seconds: int = 3600, target_dir: Path | None = None):
+        """Delete files older than ttl_seconds in specified or all temporary dirs (§30)."""
         now = time.time()
-        for directory in [self.temp_dir, self.clips_dir]:
+        directories = [target_dir] if target_dir else [self.temp_dir, self.clips_dir]
+        for directory in directories:
+            if not directory.exists():
+                continue
             for entry in directory.iterdir():
                 if entry.is_file():
                     age = now - entry.stat().st_mtime
                     if age > ttl_seconds:
                         self.delete_file(entry)
-                        log.info("Cleaned up expired file: %s (age: %.0fs)", entry, age)
+                        log.info("Cleaned up expired file: %s (age: %.0fs, ttl: %ds)", entry, age, ttl_seconds)
 
     def get_file_size(self, path: Path | str) -> int:
         """Return file size in bytes, or 0 if not found."""

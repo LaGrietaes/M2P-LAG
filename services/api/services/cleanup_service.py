@@ -34,13 +34,13 @@ class CleanupService:
         """Execute all cleanup tasks."""
         log.info("Running cleanup cycle")
 
-        # 1. Delete expired guest clips (TTL from config)
+        # 1. Delete expired guest clips (TTL = 3600s / 60 minutes)
         clip_ttl = int(__import__("os").getenv("CLIP_TTL_SECONDS", "3600"))
-        self.storage.cleanup_expired(ttl_seconds=clip_ttl)
+        self.storage.cleanup_expired(ttl_seconds=clip_ttl, target_dir=self.storage.clips_dir)
 
-        # 2. Delete temporary source media (shorter TTL)
+        # 2. Delete temporary source media (TTL = 600s / 10 minutes)
         temp_ttl = int(__import__("os").getenv("TEMP_TTL_SECONDS", "600"))
-        self.storage.cleanup_expired(ttl_seconds=temp_ttl)
+        self.storage.cleanup_expired(ttl_seconds=temp_ttl, target_dir=self.storage.temp_dir)
 
         # 3. Remove orphaned files (files in clips/ not referenced by any job)
         self._remove_orphans()
