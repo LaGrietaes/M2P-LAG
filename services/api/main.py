@@ -211,6 +211,7 @@ def extract_clip(request: ExtractRequest, req: Request) -> ExtractResponse:
             session=session,
             format_id=request.format_id,
             format=request.format,
+            preset=request.preset or "compatible",
         )
     except ExtractionError as exc:
         log.warning("Extraction failed: %s", exc)
@@ -229,6 +230,11 @@ def extract_clip(request: ExtractRequest, req: Request) -> ExtractResponse:
     matched_path = next(
         (p for p in clip_dir.iterdir() if p.stem.startswith(file_id)), None
     )
+    source_ext = (
+        Path(matched_path).suffix.lstrip(".")
+        if matched_path
+        else (request.format or "mp4")
+    )
     _jobs[file_id] = {
         "id": file_id,
         "status": "ready",
@@ -241,13 +247,8 @@ def extract_clip(request: ExtractRequest, req: Request) -> ExtractResponse:
         "expires_at": now + ttl,
         "owner": _owner_key(session, guest_token),
         "path": str(matched_path) if matched_path else None,
+        "format": source_ext,
     }
-
-    source_ext = (
-        Path(matched_path).suffix.lstrip(".")
-        if matched_path
-        else (request.format or "mp4")
-    )
 
     return ExtractResponse(
         file_id=file_id,
@@ -572,16 +573,23 @@ def download_source(request: InspectRequest, req: Request) -> ExtractResponse:
                 guest_token=guest_token,
                 format_id=request.format_id,
                 format=request.format or "mp4",
+                preset=request.preset or "compatible",
                 file_id=file_id,
             )
             clip_dir = storage_service.clips_dir
             matched_path = next(
                 (p for p in clip_dir.iterdir() if p.stem.startswith(file_id)), None
             )
+            source_ext = (
+                Path(matched_path).suffix.lstrip(".")
+                if matched_path
+                else (request.format or "mp4")
+            )
             if file_id in _jobs:
                 _jobs[file_id]["status"] = "ready"
                 _jobs[file_id]["path"] = str(matched_path) if matched_path else None
-                log.info("Background download completed for file_id=%s", file_id)
+                _jobs[file_id]["format"] = source_ext
+                log.info("Background download completed for file_id=%s, format=%s", file_id, source_ext)
         except ExtractionError as exc:
             log.warning("Background extraction failed for %s: %s", file_id, exc)
             if file_id in _jobs:

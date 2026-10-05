@@ -5,7 +5,7 @@
  * transcript), and time-range control.
  */
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import type { FormatOption, InspectResponse } from "../../types";
 import { Panel } from "../../components/ui/Panel";
 import { Button } from "../../components/ui/Button";
@@ -15,12 +15,17 @@ import { useDevMode } from "../../lib/devMode";
 
 type PrimaryTrack = "video" | "audio";
 type Mode = "clip" | "full";
-type VideoPreset = "compatible" | "high_quality";
-type AudioPreset = "mp3" | "original";
+type VideoPreset = "compatible" | "prores" | "high_quality" | "original";
+type AudioPreset = "mp3" | "wav" | "original";
 
 interface ClipEditorProps {
   media: InspectResponse;
-  onExtract: (start: number, end: number, format: "mp4" | "mp3") => void;
+  onExtract: (
+    start: number,
+    end: number,
+    format: "mp4" | "mp3" | "mov" | "webm" | "wav",
+    preset?: string,
+  ) => void;
   isExtracting: boolean;
   maxClipSeconds: number | null;
   selectedFormatId: string | null;
@@ -42,19 +47,19 @@ function parseTime(value: string): number | null {
   return parseInt(match[1], 10) * 60 + parseInt(match[2], 10);
 }
 
-function hasHevc(formats: FormatOption[]): boolean {
-  return formats.some(
-    (f) =>
-      f.vcodec?.toLowerCase().includes("hevc") ||
-      f.vcodec?.toLowerCase().includes("h265") ||
-      f.codec?.toLowerCase().includes("hevc") ||
-      f.codec?.toLowerCase().includes("h265"),
-  );
+function formatResolutionLabel(height: number): string {
+  if (height >= 4320) return `${height}p (8K)`;
+  if (height >= 2160) return `${height}p (4K)`;
+  if (height >= 1440) return `${height}p (2K)`;
+  if (height >= 1080) return `${height}p (FHD)`;
+  if (height >= 720) return `${height}p (HD)`;
+  return `${height}p`;
 }
 
 interface ResolutionChoice {
   label: string;
   formatId: string;
+  height: number;
 }
 
 function getResolutionChoices(formats: FormatOption[]): {
@@ -64,20 +69,31 @@ function getResolutionChoices(formats: FormatOption[]): {
   const byHeight = new Map<number, FormatOption>();
   for (const f of formats) {
     if (!f.height || f.height <= 0) continue;
+    // Exclude storyboard thumbnails
+    if (f.ext === "mhtml" || f.format_id?.startsWith("sb")) continue;
+    // Exclude audio-only
+    if (!f.vcodec || f.vcodec === "none") continue;
+
     const current = byHeight.get(f.height);
     if (!current || (f.tbr ?? 0) > (current.tbr ?? 0)) {
       byHeight.set(f.height, f);
     }
   }
-  const heights = Array.from(byHeight.keys()).sort((a, b) => a - b);
+  // Sort descending: 4K, 2K, 1080p, 720p...
+  const heights = Array.from(byHeight.keys()).sort((a, b) => b - a);
   const choices = heights.map((h) => ({
-    label: `${h}p`,
+    label: formatResolutionLabel(h),
     formatId: byHeight.get(h)!.format_id,
+    height: h,
   }));
-  const maxHeight = heights.at(-1);
+  const maxHeight = heights[0];
   const max =
     maxHeight !== undefined
-      ? { label: "MAX", formatId: byHeight.get(maxHeight)!.format_id }
+      ? {
+          label: `MAX (${formatResolutionLabel(maxHeight)})`,
+          formatId: byHeight.get(maxHeight)!.format_id,
+          height: maxHeight,
+        }
       : null;
   return { choices, max };
 }
@@ -110,7 +126,13 @@ export function ClipEditor({
     () => getResolutionChoices(media.formats),
     [media.formats],
   );
-  const hevcAvailable = hasHevc(media.formats);
+
+  // Auto-select MAX resolution if no format is currently selected
+  useEffect(() => {
+    if (!selectedFormatId && maxChoice) {
+      onSelectFormat(maxChoice.formatId);
+    }
+  }, [selectedFormatId, maxChoice, onSelectFormat]);
 
   const duration = media.duration ?? 0;
   const selectedDuration = outPoint - inPoint;
@@ -128,10 +150,20 @@ export function ClipEditor({
   };
 
   const handleExtract = () => {
-    const targetFormat = primaryTrack === "audio" ? "mp3" : "mp4";
+    let targetFormat: "mp4" | "mov" | "webm" | "mp3" | "wav" = "mp4";
+    let activePreset: string = videoPreset;
+
+    if (primaryTrack === "audio") {
+      targetFormat = audioPreset === "wav" ? "wav" : "mp3";
+      activePreset = audioPreset;
+    } else {
+      targetFormat = videoPreset === "prores" ? "mov" : "mp4";
+      activePreset = videoPreset;
+    }
+
     if (mode === "full") {
       setShowError(null);
-      onExtract(0, duration, targetFormat);
+      onExtract(0, duration, targetFormat, activePreset);
       return;
     }
     if (selectedDuration <= 0) {
@@ -146,7 +178,7 @@ export function ClipEditor({
       return;
     }
     setShowError(null);
-    onExtract(inPoint, outPoint, targetFormat);
+    onExtract(inPoint, outPoint, targetFormat, activePreset);
   };
 
   const switchClass = (active: boolean) =>
@@ -163,13 +195,26 @@ export function ClipEditor({
         : "border-border-subtle hover:border-accent hover:text-accent"
     }`;
 
+  const presetCardClass = (active: boolean) =>
+    `p-2.5 text-left border transition-all ${
+      active
+        ? "border-accent bg-accent/10 text-text-primary shadow-[inset_0_0_12px_rgba(255,51,51,0.15)]"
+        : "border-border-subtle bg-background/40 hover:border-border-subtle/80 hover:bg-surface-elevated/40 text-text-secondary"
+    }`;
+
   const getButtonLabel = () => {
     if (isExtracting) return "PREPARING DOWNLOAD…";
-    const trackLabel = primaryTrack === "audio" ? "AUDIO" : mode === "clip" ? "CLIP" : "FULL FILE";
+    let ext = "MP4";
+    if (primaryTrack === "audio") {
+      ext = audioPreset === "wav" ? "WAV" : "MP3";
+    } else if (videoPreset === "prores") {
+      ext = "MOV";
+    }
+    const trackLabel = primaryTrack === "audio" ? `AUDIO (${ext})` : mode === "clip" ? `CLIP (${ext})` : `FULL FILE (${ext})`;
     const base = `DOWNLOAD ${trackLabel}`;
 
     if (maxClipSeconds !== null) {
-      return mode === "clip" ? `DOWNLOAD ${trackLabel} (FREE)` : "DOWNLOAD FULL FILE (1 FREE DL)";
+      return mode === "clip" ? `DOWNLOAD ${trackLabel} (FREE)` : `DOWNLOAD FULL FILE (${ext}) (1 FREE DL)`;
     }
     if (isDeveloper && hovered) {
       return `${base} (0 B1T$ [DEV])`;
@@ -248,55 +293,132 @@ export function ClipEditor({
 
       {primaryTrack === "video" && (
         <div className="space-y-4">
+          {/* Video Format / Codec Selector */}
           <div className="space-y-2">
-            <label className="text-label-caps text-text-secondary uppercase tracking-widest">
-              Video Format
-            </label>
-            <div className="flex gap-1">
+            <div className="flex items-center justify-between">
+              <label className="text-label-caps text-text-secondary uppercase tracking-widest">
+                Target Format / Editor Codec
+              </label>
+              <span className="text-[10px] font-mono text-accent uppercase">
+                {videoPreset === "prores" ? "PRORES 422 · MOV" : videoPreset === "high_quality" ? "H.265 · MP4" : videoPreset === "original" ? "DIRECT STREAM" : "H.264 + AAC · MP4"}
+              </span>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-1.5">
               <button
+                type="button"
                 onClick={() => setVideoPreset("compatible")}
                 aria-pressed={videoPreset === "compatible"}
-                className={chipClass(videoPreset === "compatible")}
+                className={presetCardClass(videoPreset === "compatible")}
               >
-                Compatible (H.264)
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-xs">Editor Ready</span>
+                  <span className="text-[10px] px-1 py-0.5 bg-accent/20 text-accent font-mono rounded">MP4</span>
+                </div>
+                <div className="text-[10px] text-text-secondary font-mono mt-0.5">
+                  H.264 + AAC · 100% NLE Compatible
+                </div>
               </button>
-              {hevcAvailable && (
-                <button
-                  onClick={() => setVideoPreset("high_quality")}
-                  aria-pressed={videoPreset === "high_quality"}
-                  className={chipClass(videoPreset === "high_quality")}
-                >
-                  High Quality (H.265)
-                </button>
-              )}
+
+              <button
+                type="button"
+                onClick={() => setVideoPreset("prores")}
+                aria-pressed={videoPreset === "prores"}
+                className={presetCardClass(videoPreset === "prores")}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-xs">ProRes 422</span>
+                  <span className="text-[10px] px-1 py-0.5 bg-accent/20 text-accent font-mono rounded">MOV</span>
+                </div>
+                <div className="text-[10px] text-text-secondary font-mono mt-0.5">
+                  Apple ProRes · Smooth NLE Scrubbing
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setVideoPreset("high_quality")}
+                aria-pressed={videoPreset === "high_quality"}
+                className={presetCardClass(videoPreset === "high_quality")}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-xs">High Efficiency</span>
+                  <span className="text-[10px] px-1 py-0.5 bg-accent/20 text-accent font-mono rounded">MP4</span>
+                </div>
+                <div className="text-[10px] text-text-secondary font-mono mt-0.5">
+                  H.265 / HEVC · Low File Size
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setVideoPreset("original")}
+                aria-pressed={videoPreset === "original"}
+                className={presetCardClass(videoPreset === "original")}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-xs">Direct Stream</span>
+                  <span className="text-[10px] px-1 py-0.5 bg-accent/20 text-accent font-mono rounded">RAW</span>
+                </div>
+                <div className="text-[10px] text-text-secondary font-mono mt-0.5">
+                  No Transcode · Fastest Download
+                </div>
+              </button>
             </div>
+
+            <p className="text-[11px] font-mono text-text-secondary/80 pt-1 leading-relaxed">
+              {videoPreset === "compatible" && "Transcoded to standard H.264 (AVC) + AAC MP4. Works flawlessly in Premiere Pro, DaVinci Resolve, Final Cut Pro, CapCut, Sony Vegas, and all players."}
+              {videoPreset === "prores" && "Apple ProRes 422 Standard in QuickTime (.mov). The editing master codec with zero CPU lag and buttery-smooth timeline scrubbing."}
+              {videoPreset === "high_quality" && "HEVC / H.265 video with AAC audio. Keeps high visual fidelity at reduced file size."}
+              {videoPreset === "original" && "Stream copied without re-encoding. Note: YouTube 4K streams use VP9/AV1 which some video editors cannot open directly."}
+            </p>
           </div>
 
+          {/* Resolution Selector */}
           {resolutionChoices.length > 0 && (
             <div className="space-y-2">
-              <label className="text-label-caps text-text-secondary uppercase tracking-widest">
-                Resolution
-              </label>
-              <div className="flex flex-wrap gap-1">
-                {resolutionChoices.map((choice) => (
-                  <button
-                    key={choice.formatId}
-                    onClick={() => onSelectFormat(choice.formatId)}
-                    aria-pressed={selectedFormatId === choice.formatId}
-                    className={chipClass(selectedFormatId === choice.formatId)}
-                  >
-                    {choice.label}
-                  </button>
-                ))}
+              <div className="flex items-center justify-between">
+                <label className="text-label-caps text-text-secondary uppercase tracking-widest">
+                  Resolution
+                </label>
+                {selectedFormatId && (
+                  <span className="text-[10px] font-mono text-accent uppercase">
+                    SELECTED: {resolutionChoices.find((c) => c.formatId === selectedFormatId)?.label || (selectedFormatId === maxChoice?.formatId ? "TOP RESOLUTION (MAX)" : selectedFormatId)}
+                  </span>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-1.5">
                 {maxChoice && (
                   <button
+                    type="button"
                     onClick={() => onSelectFormat(maxChoice.formatId)}
                     aria-pressed={selectedFormatId === maxChoice.formatId}
-                    className={chipClass(selectedFormatId === maxChoice.formatId)}
+                    className={`px-3 py-1.5 text-xs font-mono font-bold border transition-colors flex items-center gap-1.5 ${
+                      selectedFormatId === maxChoice.formatId
+                        ? "border-accent bg-accent/20 text-accent shadow-[0_0_10px_rgba(255,51,51,0.2)]"
+                        : "border-accent/40 text-accent/80 hover:border-accent hover:text-accent"
+                    }`}
                   >
-                    MAX
+                    <span>★</span>
+                    <span>{maxChoice.label}</span>
                   </button>
                 )}
+                {resolutionChoices.map((choice) => {
+                  const isSelected = selectedFormatId === choice.formatId;
+                  const isMax = choice.formatId === maxChoice?.formatId;
+                  if (isMax && maxChoice) return null; // Already rendered MAX button
+                  return (
+                    <button
+                      key={choice.formatId}
+                      type="button"
+                      onClick={() => onSelectFormat(choice.formatId)}
+                      aria-pressed={isSelected}
+                      className={chipClass(isSelected)}
+                    >
+                      {choice.label}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -338,28 +460,63 @@ export function ClipEditor({
       )}
 
       {primaryTrack === "audio" && (
-        <div className="space-y-2">
-          <label className="text-label-caps text-text-secondary uppercase tracking-widest">
-            Audio format
-          </label>
-          <div className="flex gap-1">
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <label className="text-label-caps text-text-secondary uppercase tracking-widest">
+              Audio Format
+            </label>
+            <span className="text-[10px] font-mono text-accent uppercase">
+              {audioPreset === "wav" ? "STUDIO WAV · 48KHZ" : audioPreset === "original" ? "DIRECT AUDIO STREAM" : "HIGH QUALITY MP3 · 320KBPS"}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-3 gap-1.5">
             <button
+              type="button"
               onClick={() => setAudioPreset("mp3")}
               aria-pressed={audioPreset === "mp3"}
-              className={chipClass(audioPreset === "mp3")}
+              className={presetCardClass(audioPreset === "mp3")}
             >
-              MP3
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-xs">MP3</span>
+                <span className="text-[10px] px-1 py-0.5 bg-accent/20 text-accent font-mono rounded">320k</span>
+              </div>
+              <div className="text-[10px] text-text-secondary font-mono mt-0.5">Universal Audio</div>
             </button>
+
             <button
+              type="button"
+              onClick={() => setAudioPreset("wav")}
+              aria-pressed={audioPreset === "wav"}
+              className={presetCardClass(audioPreset === "wav")}
+            >
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-xs">WAV</span>
+                <span className="text-[10px] px-1 py-0.5 bg-accent/20 text-accent font-mono rounded">PCM</span>
+              </div>
+              <div className="text-[10px] text-text-secondary font-mono mt-0.5">Studio Lossless</div>
+            </button>
+
+            <button
+              type="button"
               onClick={() => setAudioPreset("original")}
               aria-pressed={audioPreset === "original"}
-              className={chipClass(audioPreset === "original")}
+              className={presetCardClass(audioPreset === "original")}
             >
-              Original
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-xs">Original</span>
+                <span className="text-[10px] px-1 py-0.5 bg-accent/20 text-accent font-mono rounded">RAW</span>
+              </div>
+              <div className="text-[10px] text-text-secondary font-mono mt-0.5">Direct Stream</div>
             </button>
           </div>
-          <p className="text-[11px] font-mono text-text-secondary/70 pt-1">
-            Extracts audio stream encoded in high-quality 320kbps MP3.
+
+          <p className="text-[11px] font-mono text-text-secondary/80 pt-1 leading-relaxed">
+            {audioPreset === "wav"
+              ? "Studio standard uncompressed 16-bit 48kHz PCM WAV audio. Ideal for video editors (Premiere, DaVinci Resolve) and digital audio workstations (Audition, Pro Tools, Audacity)."
+              : audioPreset === "mp3"
+              ? "Universal 320kbps MP3 audio with maximum fidelity. Compatible with all devices, video editors, and mobile players."
+              : "Direct extraction of the source audio stream without re-encoding."}
           </p>
         </div>
       )}

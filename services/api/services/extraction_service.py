@@ -13,6 +13,7 @@ Quota model (spec §3):
 
 import logging
 import subprocess
+import json
 from pathlib import Path
 import yt_dlp
 
@@ -38,6 +39,45 @@ class ExtractionService:
         self.guests = GuestService()
         self.ytdlp_path = settings.YTDLP_PATH
         self.ffmpeg_path = settings.FFMPEG_PATH
+        self.ffprobe_path = getattr(settings, "FFPROBE_PATH", "ffprobe")
+
+    def _determine_target_ext(self, format: str | None, preset: str | None) -> str:
+        fmt = (format or "mp4").strip().lower()
+        pst = (preset or "compatible").strip().lower()
+        if fmt in ("mp3", "wav"):
+            return fmt
+        if pst == "prores" or fmt == "mov":
+            return "mov"
+        if fmt == "webm":
+            return "webm"
+        return "mp4"
+
+    def _probe_codecs(self, path: str) -> tuple[str | None, str | None]:
+        """Inspect video and audio codec names using ffprobe."""
+        try:
+            cmd = [
+                self.ffprobe_path,
+                "-v", "error",
+                "-show_entries", "stream=codec_type,codec_name",
+                "-of", "json",
+                str(path),
+            ]
+            res = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+            if res.returncode == 0 and res.stdout:
+                data = json.loads(res.stdout)
+                vcodec = None
+                acodec = None
+                for s in data.get("streams", []):
+                    c_type = s.get("codec_type")
+                    c_name = s.get("codec_name")
+                    if c_type == "video" and not vcodec:
+                        vcodec = c_name
+                    elif c_type == "audio" and not acodec:
+                        acodec = c_name
+                return vcodec, acodec
+        except Exception as exc:
+            log.warning("ffprobe codec check failed for %s: %s", path, exc)
+        return None, None
 
     def extract_clip(
         self,
@@ -48,6 +88,7 @@ class ExtractionService:
         operation: str = "clip",
         format_id: str | None = None,
         format: str = "mp4",
+        preset: str = "compatible",
     ) -> str:
         """Extract a media segment and return the output file ID.
 
@@ -58,10 +99,9 @@ class ExtractionService:
             session: auth_service.Session for the requester.
             operation: credit operation type ("clip", "transcript", "hevc_encode").
             format_id: yt-dlp format_id chosen from a prior /media/inspect
-                response (spec §2 — real source-derived formats, not a
-                simplified quality toggle). None keeps the existing
-                bestvideo+bestaudio/best default.
-            format: target output format ("mp4", "mp3", etc.).
+                response. None keeps the default best-quality source.
+            format: target output format ("mp4", "mov", "webm", "mp3", "wav").
+            preset: transcode preset ("compatible", "prores", "high_quality", "original").
 
         Raises:
             ExtractionError: if validation, quota, or extraction fails.
@@ -90,8 +130,7 @@ class ExtractionService:
                 raise ExtractionError(str(exc)) from exc
 
         file_id = self._new_file_id()
-        is_mp3 = (format or "").strip().lower() == "mp3"
-        target_ext = "mp3" if is_mp3 else "mp4"
+        target_ext = self._determine_target_ext(format, preset)
 
         source_path = self._download_source(
             url,
@@ -107,9 +146,10 @@ class ExtractionService:
             self._ffmpeg_extract(
                 source_path,
                 output_path,
-                0,
-                duration,
+                start=0,
+                end=duration,
                 target_format=target_ext,
+                preset=preset,
             )
 
             file_size = self.storage.get_file_size(output_path)
@@ -121,12 +161,13 @@ class ExtractionService:
                 )
 
             log.info(
-                "Extraction complete: file_id=%s, duration=%.1fs, size=%d bytes, role=%s, format=%s",
+                "Extraction complete: file_id=%s, duration=%.1fs, size=%d bytes, role=%s, format=%s, preset=%s",
                 file_id,
                 duration,
                 file_size,
                 session.role,
                 target_ext,
+                preset,
             )
             return file_id
 
@@ -140,20 +181,11 @@ class ExtractionService:
         guest_token: str | None = None,
         format_id: str | None = None,
         format: str = "mp4",
+        preset: str = "compatible",
         file_id: str | None = None,
     ) -> str:
-        """Download the full source (no clip trimming) for registered users, or
-        for a guest using their one-time free unlimited download (spec §3).
-
-        Args:
-            format_id: yt-dlp format_id chosen from a prior /media/inspect
-                response. None keeps the existing bestvideo+bestaudio/best
-                default.
-            format: target output format ("mp4", "mp3", etc.).
-            file_id: optional pre-assigned file ID for async job tracking.
-
-        Raises:
-            ExtractionError: if validation, quota, or download fails.
+        """Download the full source for registered users, or for a guest using
+        their one-time free unlimited download (spec §3).
         """
         error = validate_url(url, allow_private=settings.ALLOW_PRIVATE_ADDRESSES)
         if error:
@@ -174,8 +206,7 @@ class ExtractionService:
 
         if not file_id:
             file_id = self._new_file_id()
-        is_mp3 = (format or "").strip().lower() == "mp3"
-        target_ext = "mp3" if is_mp3 else "mp4"
+        target_ext = self._determine_target_ext(format, preset)
 
         source_path = self._download_source(
             url,
@@ -187,16 +218,22 @@ class ExtractionService:
         try:
             output_path = self.storage.get_clip_path(file_id, ext=target_ext)
 
-            if is_mp3:
-                # Transcode to high quality MP3 (320k)
+            if target_ext == "mp3":
                 if Path(source_path).suffix.lower() == ".mp3":
                     Path(source_path).rename(output_path)
                 else:
                     self._transcode_to_mp3(source_path, output_path)
-            else:
-                source_ext = Path(source_path).suffix.lstrip(".") or "mp4"
-                output_path = self.storage.get_clip_path(file_id, ext=source_ext)
+            elif preset in ("original", "copy") and Path(source_path).suffix.lower() == f".{target_ext}":
                 Path(source_path).rename(output_path)
+            else:
+                self._ffmpeg_extract(
+                    source_path,
+                    output_path,
+                    start=None,
+                    end=None,
+                    target_format=target_ext,
+                    preset=preset,
+                )
 
             file_size = self.storage.get_file_size(output_path)
 
@@ -211,11 +248,12 @@ class ExtractionService:
                 self.guests.mark_free_download_used(guest_token)
 
             log.info(
-                "Source download complete: file_id=%s, size=%d bytes, role=%s, format=%s",
+                "Source download complete: file_id=%s, size=%d bytes, role=%s, format=%s, preset=%s",
                 file_id,
                 file_size,
                 session.role,
                 target_ext,
+                preset,
             )
             return file_id
         except ExtractionError:
@@ -234,23 +272,14 @@ class ExtractionService:
         file_id: str,
         format_id: str | None = None,
         target_format: str = "mp4",
+        start: float | None = None,
+        end: float | None = None,
     ) -> str:
-        """Download source media using yt-dlp to temporary storage.
-
-        format_id selects a specific format from a prior /media/inspect
-        response. A video-only format_id is paired with the best available
-        audio (yt-dlp merges them via ffmpeg), matching how format_id
-        already behaves when the source itself has separate video/audio
-        streams. Falls back to the existing best-quality default when no
-        format_id is given, or if yt-dlp can't resolve it (e.g. the
-        source's available formats changed between inspect and extract).
-        """
+        """Download source media using yt-dlp to temporary storage."""
         temp_dir = self.storage.temp_dir
         outtmpl = str(temp_dir / f"{file_id}.%(ext)s")
 
-        if target_format == "mp3":
-            # For audio downloads, never download full video streams even if the client
-            # passed a video format_id from the video UI tab.
+        if target_format in ("mp3", "wav"):
             if format_id and ("audio" in format_id.lower() or "ba" in format_id.lower()):
                 format_selector = f"{format_id}/bestaudio/best"
             else:
@@ -274,6 +303,8 @@ class ExtractionService:
             "buffersize": 1024 * 1024,
             "http_chunk_size": 10485760,
             "retries": 3,
+            "remote_components": ["ejs:github"],
+            "js_runtimes": {"node": {}},
             # Browser-like user agent to reduce bot detection
             "http_headers": {
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
@@ -284,7 +315,6 @@ class ExtractionService:
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 ydl.download([url])
         except yt_dlp.utils.DownloadError as exc:
-            # Clean up any partial files with this file_id
             for p in temp_dir.iterdir():
                 if p.stem == file_id:
                     self.storage.delete_file(str(p))
@@ -302,7 +332,6 @@ class ExtractionService:
                 "An unexpected error occurred while downloading this source."
             ) from exc
 
-        # Find the actual downloaded file
         downloaded_file = next(
             (p for p in temp_dir.iterdir() if p.stem == file_id), None
         )
@@ -317,165 +346,191 @@ class ExtractionService:
         self,
         input_path: str,
         output_path: str,
-        start: float,
-        end: float,
+        start: float | None = None,
+        end: float | None = None,
+        duration: float | None = None,
         target_format: str = "mp4",
+        preset: str = "compatible",
+        **kwargs,
     ):
-        """Use FFmpeg to extract a segment from the source media.
+        """Use FFmpeg to extract, transcode or stream-copy media.
 
-        Uses -c copy for video speed (no re-encoding) or libmp3lame for MP3 audio.
-        Falls back to re-encoding if stream copy fails (e.g. format incompatibility).
+        Presets:
+        - compatible (default): Universal H.264 + AAC MP4, 100% compatible with
+          Premiere Pro, DaVinci Resolve, Final Cut Pro, CapCut, etc.
+        - prores: Apple ProRes 422 Standard in QuickTime (.mov) with PCM audio.
+        - hevc / high_quality: Modern H.265 in MP4 with AAC audio.
+        - original / copy: Direct stream copy (-c copy) without re-encoding.
+        - mp3: 320kbps MP3 audio.
+        - wav: Uncompressed 16-bit 48kHz PCM WAV audio.
         """
-        if target_format == "mp3":
+        clip_duration = duration
+        if clip_duration is None and end is not None and start is not None:
+            calc = end - start
+            if calc > 0:
+                clip_duration = calc
+
+        fmt = (target_format or "mp4").strip().lower()
+        pst = (preset or "compatible").strip().lower()
+
+        # Build base time-seek flags
+        time_flags = []
+        if start is not None and start > 0:
+            time_flags += ["-ss", str(start)]
+        time_flags += ["-i", str(input_path)]
+        if clip_duration is not None and clip_duration > 0:
+            time_flags += ["-t", str(clip_duration)]
+
+        if fmt == "mp3":
             cmd = [
                 self.ffmpeg_path,
                 "-y",
-                "-ss",
-                str(start),
-                "-i",
-                input_path,
-                "-t",
-                str(end - start),
+                *time_flags,
                 "-vn",
-                "-c:a",
-                "libmp3lame",
-                "-b:a",
-                "320k",
-                "-avoid_negative_ts",
-                "make_zero",
+                "-c:a", "libmp3lame",
+                "-b:a", "320k",
+                "-avoid_negative_ts", "make_zero",
+                str(output_path),
+            ]
+        elif fmt == "wav":
+            cmd = [
+                self.ffmpeg_path,
+                "-y",
+                *time_flags,
+                "-vn",
+                "-c:a", "pcm_s16le",
+                "-ar", "48000",
+                str(output_path),
+            ]
+        elif pst == "prores" or fmt == "mov":
+            cmd = [
+                self.ffmpeg_path,
+                "-y",
+                *time_flags,
+                "-c:v", "prores_ks",
+                "-profile:v", "2",
+                "-pix_fmt", "yuv422p10le",
+                "-c:a", "pcm_s16le",
+                str(output_path),
+            ]
+        elif pst in ("hevc", "high_quality"):
+            cmd = [
+                self.ffmpeg_path,
+                "-y",
+                *time_flags,
+                "-c:v", "libx265",
+                "-preset", "fast",
+                "-crf", "22",
+                "-pix_fmt", "yuv420p",
+                "-tag:v", "hvc1",
+                "-c:a", "aac",
+                "-b:a", "320k",
+                "-movflags", "+faststart",
+                str(output_path),
+            ]
+        elif pst in ("original", "copy"):
+            cmd = [
+                self.ffmpeg_path,
+                "-y",
+                *time_flags,
+                "-c", "copy",
+                "-avoid_negative_ts", "make_zero",
                 str(output_path),
             ]
         else:
-            cmd = [
-                self.ffmpeg_path,
-                "-y",
-                "-ss",
-                str(start),
-                "-i",
-                input_path,
-                "-t",
-                str(end - start),
-                "-c",
-                "copy",
-                "-avoid_negative_ts",
-                "make_zero",
-                str(output_path),
-            ]
+            # "compatible" / "editor" (Default)
+            vcodec, acodec = self._probe_codecs(str(input_path))
+            is_h264 = vcodec and vcodec.lower() in ("h264", "avc", "avc1")
+            is_aac = acodec and acodec.lower() in ("aac", "mp4a")
 
-        log.info("FFmpeg extract: %s", " ".join(str(c) for c in cmd))
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=300,
-        )
-
-        if result.returncode != 0:
-            log.warning(
-                "Stream copy/extract failed, retrying with re-encode: %s", result.stderr
-            )
-            # Fallback: re-encode for compatibility
-            if target_format == "mp3":
+            if is_h264 and is_aac and fmt == "mp4":
+                # Both streams already optimal
                 cmd = [
                     self.ffmpeg_path,
                     "-y",
-                    "-ss",
-                    str(start),
-                    "-i",
-                    input_path,
-                    "-t",
-                    str(end - start),
-                    "-vn",
-                    "-c:a",
-                    "libmp3lame",
-                    "-q:a",
-                    "2",
-                    "-avoid_negative_ts",
-                    "make_zero",
+                    *time_flags,
+                    "-c", "copy",
+                    "-avoid_negative_ts", "make_zero",
+                    "-movflags", "+faststart",
+                    str(output_path),
+                ]
+            elif is_h264 and fmt == "mp4":
+                # Video is H.264, audio is Opus or non-AAC -> transcode only audio
+                cmd = [
+                    self.ffmpeg_path,
+                    "-y",
+                    *time_flags,
+                    "-c:v", "copy",
+                    "-c:a", "aac",
+                    "-b:a", "320k",
+                    "-avoid_negative_ts", "make_zero",
+                    "-movflags", "+faststart",
                     str(output_path),
                 ]
             else:
+                # Video is VP9, AV1, etc. -> transcode to universal H.264 + AAC
                 cmd = [
                     self.ffmpeg_path,
                     "-y",
-                    "-ss",
-                    str(start),
-                    "-i",
-                    input_path,
-                    "-t",
-                    str(end - start),
-                    "-c:v",
-                    "libx264",
-                    "-c:a",
-                    "aac",
-                    "-preset",
-                    "fast",
-                    "-avoid_negative_ts",
-                    "make_zero",
+                    *time_flags,
+                    "-c:v", "libx264",
+                    "-preset", "fast",
+                    "-crf", "18",
+                    "-pix_fmt", "yuv420p",
+                    "-c:a", "aac",
+                    "-b:a", "320k",
+                    "-movflags", "+faststart",
                     str(output_path),
                 ]
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=600,
-            )
 
-            if result.returncode != 0:
-                log.error("FFmpeg extraction failed: %s", result.stderr)
-                raise ExtractionError(
-                    "We couldn't extract the selected segment. "
-                    "The media format may not be supported."
-                )
-
-        if not Path(output_path).exists():
-            raise ExtractionError(
-                "Extraction completed but no output file was produced."
-            )
-
-        log.info("FFmpeg extract: %s", " ".join(str(c) for c in cmd))
+        log.info("FFmpeg execute: %s", " ".join(str(c) for c in cmd))
         result = subprocess.run(
             cmd,
             capture_output=True,
             text=True,
-            timeout=300,
+            timeout=1200,
         )
 
         if result.returncode != 0:
             log.warning(
-                "Stream copy failed, retrying with re-encode: %s", result.stderr
+                "Initial FFmpeg process failed, retrying with fallback encode: %s",
+                result.stderr,
             )
-            # Fallback: re-encode for compatibility
-            cmd = [
-                self.ffmpeg_path,
-                "-y",
-                "-ss",
-                str(start),
-                "-i",
-                input_path,
-                "-t",
-                str(end - start),
-                "-c:v",
-                "libx264",
-                "-c:a",
-                "aac",
-                "-preset",
-                "fast",
-                "-avoid_negative_ts",
-                "make_zero",
-                str(output_path),
-            ]
-            result = subprocess.run(
-                cmd,
+            # Universal fallback: re-encode to baseline compatible format
+            if fmt in ("mp3", "wav"):
+                fallback_cmd = [
+                    self.ffmpeg_path,
+                    "-y",
+                    *time_flags,
+                    "-vn",
+                    "-c:a", "libmp3lame" if fmt == "mp3" else "pcm_s16le",
+                    str(output_path),
+                ]
+            else:
+                fallback_cmd = [
+                    self.ffmpeg_path,
+                    "-y",
+                    *time_flags,
+                    "-c:v", "libx264",
+                    "-preset", "fast",
+                    "-crf", "20",
+                    "-pix_fmt", "yuv420p",
+                    "-c:a", "aac",
+                    "-b:a", "192k",
+                    "-movflags", "+faststart",
+                    str(output_path),
+                ]
+
+            fallback_res = subprocess.run(
+                fallback_cmd,
                 capture_output=True,
                 text=True,
-                timeout=600,
+                timeout=1200,
             )
-
-            if result.returncode != 0:
-                log.error("FFmpeg extraction failed: %s", result.stderr)
+            if fallback_res.returncode != 0:
+                log.error("FFmpeg fallback failed: %s", fallback_res.stderr)
                 raise ExtractionError(
-                    "We couldn't extract the selected segment. "
+                    "We couldn't process the selected media. "
                     "The media format may not be supported."
                 )
 

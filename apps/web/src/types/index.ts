@@ -6,6 +6,7 @@ export const InspectRequestSchema = z.object({
   // (full-source download); ignored by /media/inspect.
   format_id: z.string().optional(),
   format: z.string().optional(),
+  preset: z.string().optional(),
 });
 
 export const FormatOptionSchema = z.object({
@@ -52,6 +53,7 @@ export const ExtractRequestSchema = z.object({
   // yt-dlp format_id chosen from a prior InspectResponse.formats[] entry;
   // omitted keeps the backend's default best-quality source selection.
   format_id: z.string().optional(),
+  preset: z.string().optional(),
 });
 
 export const ExtractResponseSchema = z.object({
@@ -72,6 +74,7 @@ export const JobResponseSchema = z.object({
   error: z.string().optional().nullable(),
   created_at: z.number(),
   expires_at: z.number().optional().nullable(),
+  format: z.string().optional().nullable(),
 });
 
 export type ExtractRequest = z.infer<typeof ExtractRequestSchema>;
@@ -131,8 +134,8 @@ export const SessionSchema = z.object({
 export type Session = z.infer<typeof SessionSchema>;
 
 export type ContentType = "video" | "audio" | "transcript";
-export type VideoPreset = "compatible" | "high_quality";
-export type AudioPreset = "mp3" | "original";
+export type VideoPreset = "compatible" | "prores" | "high_quality" | "original";
+export type AudioPreset = "mp3" | "wav" | "original";
 export type TranscriptFormat = "srt" | "vtt" | "txt";
 
 export interface FormatSelection {

@@ -11,6 +11,9 @@ import { z } from "zod";
 
 export const InspectRequestSchema = z.object({
   url: z.string().min(1, "URL is required"),
+  format_id: z.string().optional(),
+  format: z.string().optional(),
+  preset: z.string().optional(),
 });
 
 export const FormatOptionSchema = z.object({
@@ -56,12 +59,16 @@ export const ExtractRequestSchema = z.object({
   start: z.number().min(0, "Start must be >= 0"),
   end: z.number().min(0, "End must be >= 0"),
   format: z.string().default("mp4"),
+  format_id: z.string().optional(),
+  preset: z.string().optional(),
 });
 
 export const ExtractResponseSchema = z.object({
   file_id: z.string(),
   status: z.string(),
   message: z.string().optional().nullable(),
+  format: z.string().optional().nullable(),
+  expires_at: z.number().optional().nullable(),
 });
 
 export const JobResponseSchema = z.object({
@@ -74,6 +81,7 @@ export const JobResponseSchema = z.object({
   error: z.string().optional().nullable(),
   created_at: z.number(),
   expires_at: z.number().optional().nullable(),
+  format: z.string().optional().nullable(),
 });
 
 export type ExtractRequest = z.infer<typeof ExtractRequestSchema>;
@@ -100,8 +108,8 @@ export type VersionResponse = z.infer<typeof VersionResponseSchema>;
 
 export type ContentType = "video" | "audio" | "transcript";
 
-export type VideoPreset = "compatible" | "high_quality";
-export type AudioPreset = "mp3" | "original";
+export type VideoPreset = "compatible" | "prores" | "high_quality" | "original";
+export type AudioPreset = "mp3" | "wav" | "original";
 export type TranscriptFormat = "srt" | "vtt" | "txt";
 
 export interface FormatSelection {

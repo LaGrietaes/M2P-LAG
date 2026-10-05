@@ -48,16 +48,13 @@ class MetadataService:
             "no_warnings": True,
             "skip_download": True,
             "noplaylist": True,
-            "socket_timeout": 12,
+            "socket_timeout": 15,
             "retries": 2,
             "extractor_retries": 2,
             "fragment_retries": 2,
             "dynamic_mpd": False,
-            "extractor_args": {
-                "youtube": {
-                    "player_client": ["web", "android", "ios"],
-                },
-            },
+            "remote_components": ["ejs:github"],
+            "js_runtimes": {"node": {}},
             # Browser-like user agent to reduce bot detection
             "http_headers": {
                 "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",

@@ -76,7 +76,7 @@ async function pollJobUntilReady(
         return {
           file_id: job.file_id || fileId,
           status: "ready",
-          format: initialFormat ?? "mp4",
+          format: job.format || initialFormat || "mp4",
           expires_at: job.expires_at ?? initialExpiresAt ?? null,
         };
       }

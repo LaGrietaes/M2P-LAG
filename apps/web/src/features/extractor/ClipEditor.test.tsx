@@ -70,7 +70,64 @@ describe('ClipEditor duration cap', () => {
     fireEvent.click(screen.getByRole('button', { name: /download clip/i }))
 
     expect(screen.queryByText(/exceeds/i)).not.toBeInTheDocument()
-    expect(onExtract).toHaveBeenCalledWith(0, 600, 'mp4')
+    expect(onExtract).toHaveBeenCalledWith(0, 600, 'mp4', 'compatible')
+  })
+
+  it('allows selecting ProRes 422 preset and extracts with mov format', () => {
+    const onExtract = vi.fn()
+    render(
+      <ClipEditor
+        media={media}
+        onExtract={onExtract}
+        isExtracting={false}
+        maxClipSeconds={null}
+        selectedFormatId={null}
+        onSelectFormat={vi.fn()}
+        b1tBalance={null}
+        mode="clip"
+        onModeChange={vi.fn()}
+      />,
+    )
+
+    fireEvent.change(screen.getByLabelText(/^in point$/i), {
+      target: { value: '00:00' },
+    })
+    fireEvent.change(screen.getByLabelText(/^out point$/i), {
+      target: { value: '00:10' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /prores 422/i }))
+    fireEvent.click(screen.getByRole('button', { name: /download clip \(mov\)/i }))
+
+    expect(onExtract).toHaveBeenCalledWith(0, 10, 'mov', 'prores')
+  })
+
+  it('allows selecting audio WAV preset and extracts with wav format', () => {
+    const onExtract = vi.fn()
+    render(
+      <ClipEditor
+        media={media}
+        onExtract={onExtract}
+        isExtracting={false}
+        maxClipSeconds={null}
+        selectedFormatId={null}
+        onSelectFormat={vi.fn()}
+        b1tBalance={null}
+        mode="clip"
+        onModeChange={vi.fn()}
+      />,
+    )
+
+    fireEvent.change(screen.getByLabelText(/^in point$/i), {
+      target: { value: '00:00' },
+    })
+    fireEvent.change(screen.getByLabelText(/^out point$/i), {
+      target: { value: '00:10' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: /^audio$/i }))
+    fireEvent.click(screen.getByRole('button', { name: /wav/i }))
+    fireEvent.click(screen.getByRole('button', { name: /download audio \(wav\)/i }))
+
+    expect(onExtract).toHaveBeenCalledWith(0, 10, 'wav', 'wav')
   })
 
   it('does not render a video element', () => {

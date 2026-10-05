@@ -76,28 +76,50 @@ export default function Landing() {
 
   const handleInspectSuccess = (data: InspectResponse) => {
     setMedia(data);
+    const validVideoFormats = (data.formats || [])
+      .filter((f) => f.height && f.height > 0 && f.ext !== "mhtml" && !f.format_id?.startsWith("sb"))
+      .sort((a, b) => (b.height ?? 0) - (a.height ?? 0) || (b.tbr ?? 0) - (a.tbr ?? 0));
+    if (validVideoFormats.length > 0) {
+      setSelectedFormatId(validVideoFormats[0].format_id);
+    } else {
+      setSelectedFormatId(null);
+    }
     setView("source");
   };
 
-  const handleExtract = (start: number, end: number, format: "mp4" | "mp3" = "mp4") => {
+  const handleExtract = (
+    start: number,
+    end: number,
+    format: "mp4" | "mp3" | "mov" | "webm" | "wav" = "mp4",
+    preset: string = "compatible",
+  ) => {
     if (!media) return;
     setView("extracting");
+    const isAudio = format === "mp3" || format === "wav";
     extractMutation.mutate({
       url: media.webpage_url || media.id,
       start,
       end,
       format,
-      format_id: format === "mp3" ? undefined : (selectedFormatId ?? undefined),
+      preset,
+      format_id: isAudio ? undefined : (selectedFormatId ?? undefined),
     });
   };
 
-  const handleDownloadSource = (_start: number = 0, _end: number = 0, format: "mp4" | "mp3" = "mp4") => {
+  const handleDownloadSource = (
+    _start: number = 0,
+    _end: number = 0,
+    format: "mp4" | "mp3" | "mov" | "webm" | "wav" = "mp4",
+    preset: string = "compatible",
+  ) => {
     if (!media) return;
     setView("extracting");
+    const isAudio = format === "mp3" || format === "wav";
     downloadMutation.mutate({
       url: media.webpage_url || media.id,
       format,
-      format_id: format === "mp3" ? undefined : (selectedFormatId ?? undefined),
+      preset,
+      format_id: isAudio ? undefined : (selectedFormatId ?? undefined),
     });
   };
 

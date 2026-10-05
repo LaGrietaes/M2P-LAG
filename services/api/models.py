@@ -20,7 +20,11 @@ class InspectRequest(BaseModel):
         None, description="yt-dlp format_id to download (jobs/download only)"
     )
     format: Optional[str] = Field(
-        "mp4", description="Output container format (mp4, mp3, etc.)"
+        "mp4", description="Output container format (mp4, mov, webm, mp3, wav)"
+    )
+    preset: Optional[str] = Field(
+        "compatible",
+        description="Transcode preset: compatible (editor-ready H.264/AAC), prores (Apple ProRes 422 MOV), high_quality (HEVC/H.265), original (direct copy)",
     )
 
 
@@ -67,11 +71,15 @@ class ExtractRequest(BaseModel):
     url: str = Field(..., min_length=1, description="Media URL to extract from")
     start: float = Field(..., ge=0, description="Start time in seconds")
     end: float = Field(..., gt=0, description="End time in seconds")
-    format: str = Field("mp4", description="Output container format (mp4, mp3, etc.)")
+    format: str = Field("mp4", description="Output container format (mp4, mov, webm, mp3, wav)")
     format_id: Optional[str] = Field(
         None,
         description="yt-dlp format_id chosen from a prior /media/inspect "
         "response's formats[]; None keeps the default best-quality source.",
+    )
+    preset: Optional[str] = Field(
+        "compatible",
+        description="Transcode preset: compatible (editor-ready H.264/AAC), prores (Apple ProRes 422 MOV), high_quality (HEVC/H.265), original (direct copy)",
     )
 
 
@@ -106,6 +114,7 @@ class JobResponse(BaseModel):
     error: Optional[str] = None
     created_at: float
     expires_at: Optional[float] = None
+    format: Optional[str] = None
 
 
 class PurchaseRequest(BaseModel):
