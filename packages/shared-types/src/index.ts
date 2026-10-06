@@ -26,6 +26,7 @@ export const FormatOptionSchema = z.object({
   vcodec: z.string().optional(),
   acodec: z.string().optional(),
   height: z.number().optional(),
+  protocol: z.string().optional().nullable(),
 });
 
 export const SubtitleOptionSchema = z.object({

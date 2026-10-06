@@ -40,6 +40,7 @@ class FormatOption(BaseModel):
     vcodec: Optional[str] = None
     acodec: Optional[str] = None
     height: Optional[int] = None
+    protocol: Optional[str] = None
 
 
 class SubtitleOption(BaseModel):

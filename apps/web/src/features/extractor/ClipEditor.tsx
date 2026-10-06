@@ -75,7 +75,18 @@ function getResolutionChoices(formats: FormatOption[]): {
     if (!f.vcodec || f.vcodec === "none") continue;
 
     const current = byHeight.get(f.height);
-    if (!current || (f.tbr ?? 0) > (current.tbr ?? 0)) {
+    const isHls = f.protocol?.startsWith("m3u8") || f.ext === "m3u8";
+    const currentIsHls = current?.protocol?.startsWith("m3u8") || current?.ext === "m3u8";
+
+    if (!current) {
+      byHeight.set(f.height, f);
+    } else if (currentIsHls && !isHls) {
+      // Prioritize direct HTTP/HTTPS stream over fragmented HLS
+      byHeight.set(f.height, f);
+    } else if (!currentIsHls && isHls) {
+      // Keep direct stream instead of fragmented HLS
+      continue;
+    } else if ((f.tbr ?? 0) > (current.tbr ?? 0)) {
       byHeight.set(f.height, f);
     }
   }

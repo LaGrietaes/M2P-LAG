@@ -95,13 +95,18 @@ class MetadataService:
         # Extract formats
         formats = []
         for fmt in info.get("formats", []):
+            ext = fmt.get("ext", "")
+            fid = str(fmt.get("format_id", ""))
+            # Exclude storyboard thumbnail tiles (sb0, sb1, mhtml)
+            if ext == "mhtml" or fid.startswith("sb"):
+                continue
             height = fmt.get("height")
             resolution = f"{height}p" if height else None
             raw_fs = fmt.get("filesize") or fmt.get("filesize_approx")
             formats.append(
                 FormatOption(
-                    format_id=fmt.get("format_id", ""),
-                    ext=fmt.get("ext", ""),
+                    format_id=fid,
+                    ext=ext,
                     resolution=resolution,
                     filesize=int(raw_fs) if raw_fs else None,
                     tbr=fmt.get("tbr"),
@@ -109,6 +114,7 @@ class MetadataService:
                     vcodec=fmt.get("vcodec"),
                     acodec=fmt.get("acodec"),
                     height=height,
+                    protocol=fmt.get("protocol"),
                 )
             )
 

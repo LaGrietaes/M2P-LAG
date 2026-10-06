@@ -303,6 +303,7 @@ class ExtractionService:
             "buffersize": 1024 * 1024,
             "http_chunk_size": 10485760,
             "retries": 3,
+            "merge_output_format": "mp4" if target_format not in ("mp3", "wav") else None,
             "remote_components": ["ejs:github"],
             "js_runtimes": {"node": {}},
             # Browser-like user agent to reduce bot detection
@@ -318,6 +319,7 @@ class ExtractionService:
             for p in temp_dir.iterdir():
                 if p.stem == file_id:
                     self.storage.delete_file(str(p))
+            log.warning("yt-dlp DownloadError for %s: %s", url, exc)
             raise ExtractionError(
                 "We couldn't retrieve this source. "
                 "The source may be unavailable, require authentication, "
