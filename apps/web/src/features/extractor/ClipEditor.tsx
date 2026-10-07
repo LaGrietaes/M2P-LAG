@@ -33,6 +33,8 @@ interface ClipEditorProps {
   b1tBalance: number | null;
   mode: Mode;
   onModeChange: (mode: Mode) => void;
+  freeDownloadUsed?: boolean;
+  onRequireAuth?: () => void;
 }
 
 function formatTime(seconds: number): string {
@@ -119,6 +121,8 @@ export function ClipEditor({
   b1tBalance,
   mode,
   onModeChange,
+  freeDownloadUsed = false,
+  onRequireAuth,
 }: ClipEditorProps) {
   const [inPoint, setInPoint] = useState(0);
   const [outPoint, setOutPoint] = useState(0);
@@ -173,6 +177,11 @@ export function ClipEditor({
     }
 
     if (mode === "full") {
+      if (maxClipSeconds !== null && freeDownloadUsed) {
+        setShowError("You have used your 1 free full download. Please log in or buy B1T$ to continue.");
+        onRequireAuth?.();
+        return;
+      }
       setShowError(null);
       onExtract(0, duration, targetFormat, activePreset);
       return;
@@ -225,13 +234,28 @@ export function ClipEditor({
     const base = `DOWNLOAD ${trackLabel}`;
 
     if (maxClipSeconds !== null) {
-      return mode === "clip" ? `DOWNLOAD ${trackLabel} (FREE)` : `DOWNLOAD FULL FILE (${ext}) (1 FREE DL)`;
+      if (mode === "clip") {
+        return `DOWNLOAD ${trackLabel} (FREE)`;
+      }
+      if (freeDownloadUsed) {
+        return `DOWNLOAD FULL FILE (${ext}) (LOGIN / BUY B1T$)`;
+      }
+      return `DOWNLOAD FULL FILE (${ext}) (1 FREE DL)`;
     }
     if (isDeveloper && hovered) {
       return `${base} (0 B1T$ [DEV])`;
     }
-    const cost = mode === "clip" ? Math.max(1, Math.ceil((selectedDuration || 1) / 60)) : Math.max(1, Math.ceil((duration || 1) / 60));
-    return `${base} (${cost} B1T$)`;
+    if (mode === "clip") {
+      const cost = Math.max(1, Math.ceil((selectedDuration || 1) / 60));
+      return `${base} (${cost} B1T$)`;
+    } else {
+      const selectedFormat = media.formats?.find((f) => f.format_id === selectedFormatId);
+      const estimatedMb = selectedFormat?.filesize
+        ? Math.round(selectedFormat.filesize / (1024 * 1024))
+        : Math.round(((selectedFormat?.tbr || 2500) * 1000 / 8 * duration) / (1024 * 1024));
+      const cost = Math.max(1, Math.ceil(estimatedMb / 50));
+      return `${base} (~${cost} B1T$)`;
+    }
   };
 
   const balanceText = isDeveloper
@@ -290,16 +314,117 @@ export function ClipEditor({
           ))}
         </div>
         
-        {/* Caption toggle removed, leaving only the Locked Transcript v2 option */}
-        <div className="space-y-2">
-          <button
-            disabled
-            className="w-full px-3 py-2 text-xs font-mono font-bold tracking-widest uppercase border border-border-subtle/30 text-text-secondary/40 flex items-center justify-center gap-2 cursor-not-allowed bg-black/25"
-          >
-            <span className="w-3 h-3 border border-text-secondary/30 bg-transparent" aria-hidden="true" />
-            + AI Transcript (Locked - v2)
-          </button>
-        </div>
+        {/* Segment Selection (Time Range Controller) */}
+        {mode === "clip" ? (
+          <div className="space-y-3 font-mono p-3 bg-surface/40 border border-border-subtle">
+            <div className="text-[11px] font-bold text-accent uppercase tracking-widest flex items-center justify-between border-b border-border-subtle/40 pb-1.5">
+              <span>01 // Select Segment Range</span>
+              <span className="text-text-primary tabular-nums font-mono">{selectedDuration.toFixed(1)}s</span>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex flex-col gap-1">
+                <div className="flex justify-between items-center text-[10px] text-text-secondary uppercase">
+                  <span>Start Time (IN)</span>
+                  <span className="text-text-primary tabular-nums">{inText}</span>
+                </div>
+                <input
+                  aria-label="In point"
+                  type="text"
+                  value={inText}
+                  onChange={(e) => handleInChange(e.target.value)}
+                  placeholder="00:00"
+                  className="w-full bg-background/80 text-text-primary px-2.5 py-1.5 text-xs border border-border-subtle focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent tabular-nums"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <div className="flex justify-between items-center text-[10px] text-text-secondary uppercase">
+                  <span>End Time (OUT)</span>
+                  <span className="text-text-primary tabular-nums">{outText}</span>
+                </div>
+                <input
+                  aria-label="Out point"
+                  type="text"
+                  value={outText}
+                  onChange={(e) => handleOutChange(e.target.value)}
+                  placeholder="00:00"
+                  className="w-full bg-background/80 text-text-primary px-2.5 py-1.5 text-xs border border-border-subtle focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent tabular-nums"
+                />
+              </div>
+            </div>
+
+            {duration > 0 && (
+              <div className="space-y-1.5 pt-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-text-secondary font-mono w-7">IN</span>
+                  <input
+                    type="range"
+                    min={0}
+                    max={Math.floor(duration)}
+                    value={inPoint}
+                    onChange={(e) => {
+                      const v = Number(e.target.value);
+                      setInPoint(v);
+                      setInText(formatTime(v));
+                    }}
+                    className="tactile-slider flex-1"
+                    aria-label="In point slider"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] text-text-secondary font-mono w-7">OUT</span>
+                  <input
+                    type="range"
+                    min={0}
+                    max={Math.floor(duration)}
+                    value={outPoint}
+                    onChange={(e) => {
+                      const v = Number(e.target.value);
+                      setOutPoint(v);
+                      setOutText(formatTime(v));
+                    }}
+                    className="tactile-slider flex-1"
+                    aria-label="Out point slider"
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-between items-center pt-2 border-t border-border-subtle/40 text-xs">
+              <span className="text-[10px] text-text-secondary uppercase tracking-wider">
+                Selected duration
+              </span>
+              <span className="text-text-primary font-bold tabular-nums">
+                {selectedDuration.toFixed(1)} sec
+              </span>
+            </div>
+
+            {maxClipSeconds !== null && selectedDuration > maxClipSeconds && (
+              <div className="text-xs text-accent-error font-mono">
+                (Selection exceeds {maxClipSeconds}s guest limit)
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="p-3 bg-surface/40 border border-border-subtle flex items-center justify-between font-mono text-xs">
+            <span className="text-text-secondary uppercase tracking-widest text-[11px]">
+              Total Duration
+            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-text-primary font-bold tabular-nums">
+                {formatTime(duration)}
+              </span>
+              <StatusBadge tone={maxClipSeconds !== null ? "accent" : "default"}>
+                {maxClipSeconds !== null
+                  ? freeDownloadUsed
+                    ? "1 Free DL Used"
+                    : "1 Free DL"
+                  : "Registered"}
+              </StatusBadge>
+            </div>
+          </div>
+        )}
       </div>
 
       {primaryTrack === "video" && (
@@ -307,15 +432,15 @@ export function ClipEditor({
           {/* Video Format / Codec Selector */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label className="text-label-caps text-text-secondary uppercase tracking-widest">
-                Target Format / Editor Codec
+              <label className="text-label-caps text-text-secondary uppercase tracking-widest text-[11px]">
+                {mode === "clip" ? "02 // " : "01 // "}Target Format / Editor Codec
               </label>
               <span className="text-[10px] font-mono text-accent uppercase">
                 {videoPreset === "prores" ? "PRORES 422 · MOV" : videoPreset === "high_quality" ? "H.265 · MP4" : videoPreset === "original" ? "DIRECT STREAM" : "H.264 + AAC · MP4"}
               </span>
             </div>
             
-            <div className="grid grid-cols-2 gap-1.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={() => setVideoPreset("compatible")}
@@ -324,7 +449,7 @@ export function ClipEditor({
               >
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-xs">Editor Ready</span>
-                  <span className="text-[10px] px-1 py-0.5 bg-accent/20 text-accent font-mono rounded">MP4</span>
+                  <span className="text-[10px] px-1 py-0.5 bg-accent/20 text-accent font-mono">MP4</span>
                 </div>
                 <div className="text-[10px] text-text-secondary font-mono mt-0.5">
                   H.264 + AAC · 100% NLE Compatible
@@ -339,7 +464,7 @@ export function ClipEditor({
               >
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-xs">ProRes 422</span>
-                  <span className="text-[10px] px-1 py-0.5 bg-accent/20 text-accent font-mono rounded">MOV</span>
+                  <span className="text-[10px] px-1 py-0.5 bg-accent/20 text-accent font-mono">MOV</span>
                 </div>
                 <div className="text-[10px] text-text-secondary font-mono mt-0.5">
                   Apple ProRes · Smooth NLE Scrubbing
@@ -354,7 +479,7 @@ export function ClipEditor({
               >
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-xs">High Efficiency</span>
-                  <span className="text-[10px] px-1 py-0.5 bg-accent/20 text-accent font-mono rounded">MP4</span>
+                  <span className="text-[10px] px-1 py-0.5 bg-accent/20 text-accent font-mono">MP4</span>
                 </div>
                 <div className="text-[10px] text-text-secondary font-mono mt-0.5">
                   H.265 / HEVC · Low File Size
@@ -369,7 +494,7 @@ export function ClipEditor({
               >
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-xs">Direct Stream</span>
-                  <span className="text-[10px] px-1 py-0.5 bg-accent/20 text-accent font-mono rounded">RAW</span>
+                  <span className="text-[10px] px-1 py-0.5 bg-accent/20 text-accent font-mono">RAW</span>
                 </div>
                 <div className="text-[10px] text-text-secondary font-mono mt-0.5">
                   No Transcode · Fastest Download
@@ -389,7 +514,7 @@ export function ClipEditor({
           {resolutionChoices.length > 0 && (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-label-caps text-text-secondary uppercase tracking-widest">
+                <label className="text-label-caps text-text-secondary uppercase tracking-widest text-[11px]">
                   Resolution
                 </label>
                 {selectedFormatId && (
@@ -458,7 +583,7 @@ export function ClipEditor({
               </button>
             </div>
             {formatTab === "advanced" && (
-              <div className="max-h-64 overflow-y-auto">
+              <div className="max-h-56 overflow-y-auto border border-border-subtle/50 p-2">
                 <FormatTable
                   formats={media.formats}
                   selectedId={selectedFormatId}
@@ -473,7 +598,7 @@ export function ClipEditor({
       {primaryTrack === "audio" && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <label className="text-label-caps text-text-secondary uppercase tracking-widest">
+            <label className="text-label-caps text-text-secondary uppercase tracking-widest text-[11px]">
               Audio Format
             </label>
             <span className="text-[10px] font-mono text-accent uppercase">
@@ -481,7 +606,7 @@ export function ClipEditor({
             </span>
           </div>
 
-          <div className="grid grid-cols-3 gap-1.5">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             <button
               type="button"
               onClick={() => setAudioPreset("mp3")}
@@ -490,7 +615,7 @@ export function ClipEditor({
             >
               <div className="flex items-center justify-between">
                 <span className="font-bold text-xs">MP3</span>
-                <span className="text-[10px] px-1 py-0.5 bg-accent/20 text-accent font-mono rounded">320k</span>
+                <span className="text-[10px] px-1 py-0.5 bg-accent/20 text-accent font-mono">320k</span>
               </div>
               <div className="text-[10px] text-text-secondary font-mono mt-0.5">Universal Audio</div>
             </button>
@@ -503,7 +628,7 @@ export function ClipEditor({
             >
               <div className="flex items-center justify-between">
                 <span className="font-bold text-xs">WAV</span>
-                <span className="text-[10px] px-1 py-0.5 bg-accent/20 text-accent font-mono rounded">PCM</span>
+                <span className="text-[10px] px-1 py-0.5 bg-accent/20 text-accent font-mono">PCM</span>
               </div>
               <div className="text-[10px] text-text-secondary font-mono mt-0.5">Studio Lossless</div>
             </button>
@@ -516,7 +641,7 @@ export function ClipEditor({
             >
               <div className="flex items-center justify-between">
                 <span className="font-bold text-xs">Original</span>
-                <span className="text-[10px] px-1 py-0.5 bg-accent/20 text-accent font-mono rounded">RAW</span>
+                <span className="text-[10px] px-1 py-0.5 bg-accent/20 text-accent font-mono">RAW</span>
               </div>
               <div className="text-[10px] text-text-secondary font-mono mt-0.5">Direct Stream</div>
             </button>
@@ -532,107 +657,14 @@ export function ClipEditor({
         </div>
       )}
 
-      {/* Time-range controller */}
-      {mode === "clip" ? (
-        <div className="space-y-4 font-mono">
-          <div className="flex flex-col gap-2">
-            <div className="flex justify-between items-center text-label-caps text-text-secondary uppercase">
-              <span>Start Time (IN)</span>
-              <span className="text-text-primary tabular-nums">{inText}</span>
-            </div>
-            <input
-              aria-label="In point"
-              type="text"
-              value={inText}
-              onChange={(e) => handleInChange(e.target.value)}
-              placeholder="00:00"
-              className="w-full bg-background/80 text-text-primary px-3 py-2 border border-border-subtle focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent tabular-nums"
-            />
-          </div>
-
-          {duration > 0 && (
-            <div className="py-2">
-              <input
-                type="range"
-                min={0}
-                max={Math.floor(duration)}
-                value={inPoint}
-                onChange={(e) => {
-                  const v = Number(e.target.value);
-                  setInPoint(v);
-                  setInText(formatTime(v));
-                }}
-                className="tactile-slider"
-                aria-label="In point slider"
-              />
-            </div>
-          )}
-
-          <div className="flex flex-col gap-2">
-            <div className="flex justify-between items-center text-label-caps text-text-secondary uppercase">
-              <span>End Time (OUT)</span>
-              <span className="text-text-primary tabular-nums">{outText}</span>
-            </div>
-            <input
-              aria-label="Out point"
-              type="text"
-              value={outText}
-              onChange={(e) => handleOutChange(e.target.value)}
-              placeholder="00:00"
-              className="w-full bg-background/80 text-text-primary px-3 py-2 border border-border-subtle focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent tabular-nums"
-            />
-          </div>
-
-          {duration > 0 && (
-            <div className="py-2">
-              <input
-                type="range"
-                min={0}
-                max={Math.floor(duration)}
-                value={outPoint}
-                onChange={(e) => {
-                  const v = Number(e.target.value);
-                  setOutPoint(v);
-                  setOutText(formatTime(v));
-                }}
-                className="tactile-slider"
-                aria-label="Out point slider"
-              />
-            </div>
-          )}
-
-          <div className="flex justify-between items-center py-3 border-t border-b border-border-subtle">
-            <span className="text-label-caps text-text-secondary uppercase tracking-widest">
-              Selected duration
-            </span>
-            <span className="text-text-primary tabular-nums">
-              {selectedDuration.toFixed(1)} sec
-            </span>
-          </div>
-
-          {maxClipSeconds !== null && selectedDuration > maxClipSeconds && (
-            <div className="text-sm text-accent-error">
-              (exceeds {maxClipSeconds}s guest limit)
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="space-y-4">
-          <div className="flex justify-between items-center py-3 border-t border-b border-border-subtle">
-            <span className="text-label-caps text-text-secondary uppercase tracking-widest">
-              Total Duration
-            </span>
-            <span className="text-text-primary font-mono tabular-nums">
-              {formatTime(duration)}
-            </span>
-          </div>
-          <StatusBadge tone={maxClipSeconds !== null ? "accent" : "default"}>
-            {maxClipSeconds !== null
-              ? "Guest Account: 1 free full download"
-              : "Registered Account"}
-          </StatusBadge>
-        </div>
-      )}
+      {/* AI Transcript status note */}
+      <div className="flex items-center justify-between px-3 py-2 border border-border-subtle/30 bg-surface/30 font-mono text-xs text-text-secondary">
+        <span className="flex items-center gap-2">
+          <span className="w-1.5 h-1.5 bg-accent/60" />
+          AI Audio Transcript
+        </span>
+        <span className="text-[10px] uppercase text-text-secondary/50 font-bold">Planned for v2</span>
+      </div>
 
       {showError && (
         <div className="p-3 text-sm text-accent-error bg-accent-error/10 border border-accent-error/40">

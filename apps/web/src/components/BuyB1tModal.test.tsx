@@ -11,10 +11,12 @@ describe('BuyB1tModal', () => {
 
   it('shows three package tiers when open', () => {
     render(<BuyB1tModal isOpen={true} onClose={vi.fn()} onPurchased={vi.fn()} />)
-    // New tiers: 100, 550, 2300 B1T$
-    expect(screen.getAllByText(/100 b1t/i).length).toBeGreaterThan(0)
-    expect(screen.getByText(/550 b1t/i)).toBeInTheDocument()
-    expect(screen.getByText(/2300 b1t/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /signal/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /broadcast/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /override/i })).toBeInTheDocument()
+    expect(screen.getByText('100')).toBeInTheDocument()
+    expect(screen.getByText('550')).toBeInTheDocument()
+    expect(screen.getByText('2300')).toBeInTheDocument()
   })
 
   it('calls purchaseB1t and onPurchased when a tier is confirmed', async () => {

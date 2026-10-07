@@ -55,15 +55,13 @@ export function HeaderHUD({
           <span className="text-[#10b981] font-bold">LOCKED</span>
         </div>
 
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-surface border border-border-subtle text-text-secondary">
-          <span className="hidden sm:inline">IDENTITY:</span>
+        {/* Consolidated Identity & Balance Status Capsule */}
+        <div className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 sm:py-1.5 bg-surface border border-border-subtle text-text-secondary text-[11px] sm:text-xs">
+          <span className="hidden sm:inline">ID:</span>
           <strong className={isDeveloper && isDevModeAvailable ? "text-accent-bright font-bold" : isUserLoggedIn ? "text-white font-bold" : "text-text-secondary"}>
             {roleText}
           </strong>
-        </div>
-
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-surface border border-border-subtle text-text-secondary">
-          <span className="hidden sm:inline">BALANCE:</span>
+          <span className="text-border-subtle">·</span>
           <strong className="text-accent-bright font-extrabold">{balanceText}</strong>
         </div>
 

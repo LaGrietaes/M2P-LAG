@@ -12,10 +12,10 @@ interface BuyB1tModalProps {
   onPurchased: (creditedAmount: number) => void;
 }
 
-const TIERS: { tier: number; amount: number; label: string; note: string }[] = [
-  { tier: 1, amount: 100, label: "SIGNAL", note: "100 B1T$ · Starter pack" },
-  { tier: 2, amount: 550, label: "BROADCAST", note: "550 B1T$ · +50 bonus" },
-  { tier: 3, amount: 2300, label: "OVERRIDE", note: "2300 B1T$ · +300 bonus" },
+const TIERS: { tier: number; amount: number; price: string; label: string; note: string; bonus?: string }[] = [
+  { tier: 1, amount: 100, price: "€1.00", label: "SIGNAL", note: "100 B1T$ · Starter pack" },
+  { tier: 2, amount: 550, price: "€5.00", label: "BROADCAST", note: "500 + 50 bonus B1T$", bonus: "+10% BONUS" },
+  { tier: 3, amount: 2300, price: "€20.00", label: "OVERRIDE", note: "2000 + 300 bonus B1T$", bonus: "+15% BONUS" },
 ];
 
 export function BuyB1tModal({ isOpen, onClose, onPurchased }: BuyB1tModalProps) {
@@ -76,20 +76,30 @@ export function BuyB1tModal({ isOpen, onClose, onPurchased }: BuyB1tModalProps) 
         )}
 
         {/* Tier grid */}
-        <div className="grid grid-cols-3 gap-px bg-border-subtle p-px mx-6 my-6">
-          {TIERS.map(({ tier, amount, label, note }) => (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-border-subtle p-px mx-6 my-6">
+          {TIERS.map(({ tier, amount, price, label, note, bonus }) => (
             <button
               key={tier}
               onClick={() => handleBuy(tier, amount)}
               disabled={pending !== null}
-              className="glitch-text-hover group flex flex-col items-start gap-2 p-4 bg-[#040508] hover:bg-surface-elevated transition-colors disabled:opacity-50 text-left"
+              className="glitch-text-hover group flex flex-col items-start gap-2 p-4 bg-[#040508] hover:bg-surface-elevated transition-colors disabled:opacity-50 text-left relative"
             >
-              <span className="font-mono text-label-caps text-text-secondary tracking-widest">{label}</span>
+              <div className="w-full flex items-center justify-between">
+                <span className="font-mono text-label-caps text-text-secondary tracking-widest">{label}</span>
+                {bonus && (
+                  <span className="text-[9px] font-mono font-bold text-accent px-1 py-0.5 bg-accent/15 border border-accent/40">
+                    {bonus}
+                  </span>
+                )}
+              </div>
               <span className="glitch-target font-display font-black text-2xl text-white">
                 {isDeveloper ? "0" : amount}
                 <span className="text-sm font-mono text-accent-bright ml-1">B1T$</span>
               </span>
-              <span className="font-mono text-[10px] text-text-secondary">{note}</span>
+              <div className="flex flex-col gap-0.5">
+                <span className="font-mono text-xs font-bold text-white tracking-wide">{price}</span>
+                <span className="font-mono text-[10px] text-text-secondary">{note}</span>
+              </div>
               {pending === tier && (
                 <span className="font-mono text-xs text-accent-bright animate-pulse">Processing…</span>
               )}

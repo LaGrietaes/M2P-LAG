@@ -67,9 +67,9 @@ export function ExtractionProgress({
   const header = isPending ? stageInfo.title : "PREPARATION COMPLETE";
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
       {/* Left: raw stream log */}
-      <Panel className="hidden md:flex col-span-3 flex-col p-4 gap-2 border-r border-border-subtle bg-[#040508]/80">
+      <Panel className="hidden lg:flex col-span-3 flex-col p-4 gap-2 border-r border-border-subtle bg-[#040508]/80">
         <div className="font-mono text-label-caps text-text-primary uppercase tracking-widest flex justify-between border-b border-border-subtle pb-2">
           <span>Stream Tracker</span>
           <span className="animate-pulse">▾</span>
@@ -87,7 +87,7 @@ export function ExtractionProgress({
       </Panel>
 
       {/* Central: pixel grid gauge */}
-      <div className="col-span-1 md:col-span-6 flex flex-col items-center justify-center gap-6 py-8">
+      <div className="col-span-1 lg:col-span-6 flex flex-col items-center justify-center gap-6 py-8">
         <div className="flex flex-col items-center gap-2">
           <div className="font-mono text-label-caps text-text-secondary tracking-[0.2em] uppercase flex items-center gap-2">
             <span className="w-2 h-2 bg-accent animate-pulse" />
@@ -157,7 +157,7 @@ export function ExtractionProgress({
       </div>
 
       {/* Right: SYS_EVENTS */}
-      <Panel className="hidden md:flex col-span-3 flex-col p-4 gap-2 border-l border-border-subtle bg-[#040508]/80">
+      <Panel className="hidden lg:flex col-span-3 flex-col p-4 gap-2 border-l border-border-subtle bg-[#040508]/80">
         <div className="font-mono text-label-caps text-text-primary uppercase tracking-widest flex justify-between border-b border-border-subtle pb-2">
           <span>Processing Log</span>
           <span>›_</span>

@@ -96,39 +96,41 @@ export function LaGrietaFooter() {
       <footer
         role="contentinfo"
         aria-label="Información legal y cumplimiento"
-        className="fixed bottom-3 left-1/2 -translate-x-1/2 z-40 flex flex-wrap items-center justify-center gap-3 px-4 py-2 bg-[#040508]/90 border border-white/10 backdrop-blur-md font-mono text-[10px] text-gray-400 tracking-[0.15em] uppercase hover:border-white/20 transition-all shadow-xl max-w-[95vw]"
+        className="w-full py-6 px-4 mt-auto flex justify-center relative z-20"
       >
-        <a
-          href={CANONICAL_LEGAL_URLS.BASE}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label="Powered by LaGrieta.es"
-          className="flex items-center gap-1.5 text-white font-bold hover:text-red-500 transition-colors"
-        >
-          {/* LaGrieta signal mark */}
-          <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 shrink-0" fill="none" aria-hidden="true">
-            <polygon points="12,2 22,20 2,20" fill="#ff0033" />
-            <polygon points="12,7 18,17 6,17" fill="#040508" />
-            <line x1="12" y1="9" x2="12" y2="14" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="square" />
-            <rect x="11.2" y="15.2" width="1.6" height="1.6" fill="#ffffff" />
-          </svg>
-          <span>LAGRIETA.ES</span>
-        </a>
-
-        <span className="text-white/20 hidden sm:inline">|</span>
-
-        <div className="flex items-center gap-2.5 text-[9px] sm:text-[10px]">
-          <a href={CANONICAL_LEGAL_URLS.AVISO_LEGAL} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Aviso Legal</a>
-          <a href={CANONICAL_LEGAL_URLS.PRIVACIDAD} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Privacidad</a>
-          <a href={CANONICAL_LEGAL_URLS.TERMINOS} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Términos</a>
-          <a href={CANONICAL_LEGAL_URLS.COOKIES} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Cookies</a>
-          <button
-            type="button"
-            onClick={() => setShowBanner(true)}
-            className="hover:text-red-400 transition-colors bg-transparent border-none p-0 cursor-pointer font-mono text-[9px] sm:text-[10px] text-gray-500"
+        <div className="flex flex-wrap items-center justify-center gap-3 px-4 py-2 bg-[#040508]/90 border border-white/10 backdrop-blur-md font-mono text-[10px] text-gray-400 tracking-[0.15em] uppercase hover:border-white/20 transition-all shadow-xl max-w-[95vw]">
+          <a
+            href={CANONICAL_LEGAL_URLS.BASE}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Powered by LaGrieta.es"
+            className="flex items-center gap-1.5 text-white font-bold hover:text-red-500 transition-colors"
           >
-            [Ajustes]
-          </button>
+            {/* LaGrieta signal mark */}
+            <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 shrink-0" fill="none" aria-hidden="true">
+              <polygon points="12,2 22,20 2,20" fill="#ff0033" />
+              <polygon points="12,7 18,17 6,17" fill="#040508" />
+              <line x1="12" y1="9" x2="12" y2="14" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="square" />
+              <rect x="11.2" y="15.2" width="1.6" height="1.6" fill="#ffffff" />
+            </svg>
+            <span>LAGRIETA.ES</span>
+          </a>
+
+          <span className="text-white/20 hidden sm:inline">|</span>
+
+          <div className="flex items-center gap-2.5 text-[9px] sm:text-[10px]">
+            <a href={CANONICAL_LEGAL_URLS.AVISO_LEGAL} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Aviso Legal</a>
+            <a href={CANONICAL_LEGAL_URLS.PRIVACIDAD} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Privacidad</a>
+            <a href={CANONICAL_LEGAL_URLS.TERMINOS} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Términos</a>
+            <a href={CANONICAL_LEGAL_URLS.COOKIES} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Cookies</a>
+            <button
+              type="button"
+              onClick={() => setShowBanner(true)}
+              className="hover:text-red-400 transition-colors bg-transparent border-none p-0 cursor-pointer font-mono text-[9px] sm:text-[10px] text-gray-500"
+            >
+              [Ajustes]
+            </button>
+          </div>
         </div>
       </footer>
 

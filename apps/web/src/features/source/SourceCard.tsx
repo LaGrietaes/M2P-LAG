@@ -14,6 +14,7 @@ interface SourceCardProps {
   onPreview?: () => void;
   onDownloadSource?: () => void;
   freeDownloadBadge?: "available" | "used" | null;
+  hideActionButtons?: boolean;
 }
 
 function formatDuration(seconds: number | null | undefined): string {
@@ -32,6 +33,7 @@ export function SourceCard({
   onPreview,
   onDownloadSource,
   freeDownloadBadge,
+  hideActionButtons = false,
 }: SourceCardProps) {
   const { isDeveloper } = useDevMode();
   const [hoverTrim, setHoverTrim] = useState(false);
@@ -164,15 +166,17 @@ export function SourceCard({
         >
           {isPlayingPreview ? "STOP PREVIEW" : "PLAY PREVIEW"}
         </button>
-        <button
-          onClick={onExtract}
-          className="px-4 py-2 text-sm font-mono font-medium text-white bg-accent hover:bg-brand-red-dark transition-colors glitch-text-hover"
-          onMouseEnter={() => setHoverTrim(true)}
-          onMouseLeave={() => hoverTrim && setHoverTrim(false)}
-        >
-          <span className="glitch-target">{getTrimLabel()}</span>
-        </button>
-        {onDownloadSource && (
+        {!hideActionButtons && onExtract && (
+          <button
+            onClick={onExtract}
+            className="px-4 py-2 text-sm font-mono font-medium text-white bg-accent hover:bg-brand-red-dark transition-colors glitch-text-hover"
+            onMouseEnter={() => setHoverTrim(true)}
+            onMouseLeave={() => hoverTrim && setHoverTrim(false)}
+          >
+            <span className="glitch-target">{getTrimLabel()}</span>
+          </button>
+        )}
+        {!hideActionButtons && onDownloadSource && (
           <button
             onClick={onDownloadSource}
             className="px-4 py-2 text-sm font-mono font-medium text-text-primary bg-transparent border border-border-subtle hover:bg-surface-elevated transition-colors glitch-text-hover"

@@ -118,16 +118,77 @@ export function DeliverPanel({
         <div className="absolute bottom-0 left-0 w-4 h-4 border-b border-l border-accent" />
         <div className="absolute bottom-0 right-0 w-4 h-4 border-b border-r border-accent" />
 
-        <div className="flex flex-col items-center gap-4 mb-8">
+        <div className="flex flex-col items-center gap-2 mb-6">
           <h2 className="font-display font-black text-2xl md:text-3xl text-text-primary uppercase tracking-tight">
             YOUR DOWNLOAD IS READY
           </h2>
           <p className="font-mono text-xs text-text-secondary uppercase tracking-widest">
-            Your media file has been successfully prepared and is ready for download.
+            Media extraction complete. Save file directly to device.
           </p>
         </div>
 
-        {/* Media Preview Frame with Tactical HUD */}
+        {/* Primary Action Hero */}
+        <div className="w-full max-w-md mx-auto space-y-3 mb-8">
+          <Button
+            onClick={handleDownload}
+            disabled={downloadState === "pending" || remaining === 0}
+            className="w-full py-4 text-lg font-bold shadow-[0_0_20px_rgba(217,4,41,0.3)] glitch-text-hover"
+          >
+            <span className="glitch-target">
+              {remaining === 0
+                ? "FILE EXPIRED"
+                : downloadState === "pending"
+                ? "PREPARING…"
+                : "DOWNLOAD FILE"}
+            </span>
+          </Button>
+
+          {/* Countdown timer */}
+          {remaining !== null && (
+            <div className="flex items-center justify-center gap-3 px-4 py-2 bg-[#040508]/80 border border-border-subtle text-xs">
+              <span className="font-mono text-text-secondary">
+                {remaining > 0 ? "FILE AVAILABLE FOR:" : "FILE STATUS:"}
+              </span>
+              <span
+                className={`font-mono text-sm tabular-nums font-bold ${
+                  remaining > 0 ? "text-accent-bright" : "text-accent-error"
+                }`}
+              >
+                {remaining > 0 ? formatRemaining(remaining) : "EXPIRED (PURGED)"}
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* File Format, Status & Reference */}
+        <div className="border-y border-border-subtle py-4 mb-6 grid grid-cols-3 gap-4 bg-surface/30">
+          <div className="flex flex-col gap-0.5 border-r border-border-subtle pr-4">
+            <span className="font-mono text-label-caps text-text-secondary uppercase text-[10px]">
+              File Format
+            </span>
+            <span className="font-mono text-sm text-text-primary uppercase font-bold">
+              {extractResult.format || "MP4"}
+            </span>
+          </div>
+          <div className="flex flex-col gap-0.5 border-r border-border-subtle px-4">
+            <span className="font-mono text-label-caps text-text-secondary uppercase text-[10px]">
+              Status
+            </span>
+            <span className="font-mono text-sm text-[#10b981] uppercase font-bold">
+              {extractResult.status}
+            </span>
+          </div>
+          <div className="flex flex-col gap-0.5 pl-4">
+            <span className="font-mono text-label-caps text-text-secondary uppercase text-[10px]">
+              Reference ID
+            </span>
+            <span className="font-mono text-sm text-text-primary truncate">
+              {extractResult.file_id.slice(0, 8)}
+            </span>
+          </div>
+        </div>
+
+        {/* Media Preview & Metadata confirmation */}
         {(displayThumbnail || isPlayingPreview) && (
           <div className="space-y-3 max-w-lg mx-auto mb-6">
             <div className="relative aspect-video overflow-hidden bg-black border border-border-subtle">
@@ -175,12 +236,17 @@ export function DeliverPanel({
               )}
             </div>
 
-            {(isYoutube || isVimeo) && (
-              <div className="flex justify-center">
+            <div className="flex items-center justify-between">
+              {displayTitle && (
+                <span className="font-mono text-xs text-text-primary truncate text-left max-w-[70%]">
+                  {displayTitle} {displayCreator && <span className="text-text-secondary">({displayCreator})</span>}
+                </span>
+              )}
+              {(isYoutube || isVimeo) && (
                 <button
                   type="button"
                   onClick={() => setIsPlayingPreview((prev) => !prev)}
-                  className={`px-3 py-1.5 text-xs font-mono font-medium border transition-colors ${
+                  className={`px-2.5 py-1 text-[11px] font-mono font-medium border transition-colors ${
                     isPlayingPreview
                       ? "border-accent bg-accent/20 text-white"
                       : "text-text-primary bg-transparent border-border-subtle hover:bg-surface-elevated"
@@ -188,81 +254,13 @@ export function DeliverPanel({
                 >
                   {isPlayingPreview ? "STOP PREVIEW" : "PLAY PREVIEW"}
                 </button>
-              </div>
-            )}
-          </div>
-        )}
-
-        {displayTitle && (
-          <div className="mb-6 font-display text-sm font-semibold text-white bg-white/5 py-3 px-4 border border-border-subtle flex flex-col items-center justify-center gap-1">
-            <span>{displayTitle}</span>
-            {displayCreator && (
-              <span className="font-mono text-xs text-text-secondary font-normal">
-                {displayCreator}
-              </span>
-            )}
-          </div>
-        )}
-
-        <div className="border-y border-border-subtle py-6 mb-8 grid grid-cols-3 gap-4">
-          <div className="flex flex-col gap-1 border-r border-border-subtle pr-4">
-            <span className="font-mono text-label-caps text-text-secondary uppercase">
-              File Format
-            </span>
-            <span className="font-mono text-sm text-text-primary uppercase">
-              {extractResult.format || "MP4"}
-            </span>
-          </div>
-          <div className="flex flex-col gap-1 border-r border-border-subtle px-4">
-            <span className="font-mono text-label-caps text-text-secondary uppercase">
-              Status
-            </span>
-            <span className="font-mono text-sm text-text-primary uppercase">
-              {extractResult.status}
-            </span>
-          </div>
-          <div className="flex flex-col gap-1 pl-4">
-            <span className="font-mono text-label-caps text-text-secondary uppercase">
-              Reference ID
-            </span>
-            <span className="font-mono text-sm text-text-primary truncate">
-              {extractResult.file_id.slice(0, 8)}
-            </span>
-          </div>
-        </div>
-
-        {/* Action column */}
-        <div className="w-full max-w-md mx-auto space-y-4">
-          {/* Main download button */}
-          <Button
-            onClick={handleDownload}
-            disabled={downloadState === "pending" || remaining === 0}
-            className="w-full py-4 text-lg"
-          >
-            {remaining === 0
-              ? "FILE EXPIRED"
-              : downloadState === "pending"
-              ? "PREPARING…"
-              : "DOWNLOAD FILE"}
-          </Button>
-
-          {/* Countdown timer - restored directly under the download button */}
-          {remaining !== null && (
-            <div className="flex items-center justify-center gap-3 px-4 py-2 bg-[#040508]/80 border border-border-subtle text-xs">
-              <span className="font-mono text-text-secondary animate-pulse">
-                {remaining > 0 ? "FILE AVAILABLE FOR:" : "FILE STATUS:"}
-              </span>
-              <span
-                className={`font-mono text-sm tabular-nums font-bold ${
-                  remaining > 0 ? "text-accent" : "text-accent-error"
-                }`}
-              >
-                {remaining > 0 ? formatRemaining(remaining) : "EXPIRED (PURGED)"}
-              </span>
+              )}
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Share Link Widget */}
+        {/* Share Link Widget */}
+        <div className="w-full max-w-md mx-auto space-y-4">
           <div className="border border-border-subtle bg-white/5 p-4 space-y-2 text-left font-mono">
             <div className="text-[10px] text-text-secondary uppercase tracking-widest font-bold">
               Share download link

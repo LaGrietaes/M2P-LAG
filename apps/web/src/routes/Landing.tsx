@@ -132,6 +132,16 @@ export default function Landing() {
 
   const handleBackToSource = () => setView("source");
 
+  const handleStepClick = (targetView: ViewState) => {
+    if (targetView === "input") {
+      handleBackToInput();
+    } else if (targetView === "source" && media) {
+      setView("source");
+    } else if (targetView === "configure" && media) {
+      setView("configure");
+    }
+  };
+
   const freeDownloadBadge =
     quota && quota.role === "guest"
       ? quota.free_download_used
@@ -147,7 +157,7 @@ export default function Landing() {
   const isExtracting = extractMutation.isPending || downloadMutation.isPending;
 
   return (
-    <div className="relative min-h-screen bg-[#040508] text-white">
+    <div className="relative min-h-screen bg-[#040508] text-white flex flex-col justify-between">
       {/* Dynamic CRT ambient background */}
       <AmbientBackground
         thumbnailUrl={media?.thumbnail}
@@ -164,15 +174,15 @@ export default function Landing() {
 
       {/* Progress breadcrumb rail */}
       <div className="relative z-10 border-b border-border-subtle">
-        <ProgressRail current={view} orientation="horizontal" />
+        <ProgressRail current={view} orientation="horizontal" onStepClick={handleStepClick} />
       </div>
 
       {/* Main content area */}
-      <main className="relative z-10 w-full max-w-6xl mx-auto px-4 sm:px-8 py-8 pb-20">
+      <main className="relative z-10 w-full max-w-6xl mx-auto px-4 sm:px-8 py-8 pb-16 flex-1">
 
         {/* ─── STAGE: INPUT ─────────────────────────────────────────── */}
         {view === "input" && (
-          <div className="min-h-[calc(100vh-12rem)] flex flex-col items-center justify-center gap-12">
+          <div className="min-h-[calc(100vh-14rem)] flex flex-col items-center justify-center gap-12">
             {/* Hero */}
             <div className="text-center">
               <LogoFull className="h-16 sm:h-20 w-auto mx-auto mb-4 drop-shadow-[0_0_20px_rgba(255,0,0,0.15)]" />
@@ -250,21 +260,16 @@ export default function Landing() {
             >
               ← BACK TO PREVIEW
             </button>
-            <div className="grid grid-cols-1 md:grid-cols-8 gap-4 items-start">
-              <div className="md:col-span-5">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+              <div className="lg:col-span-7">
                 <SourceCard
                   media={media}
-                  onExtract={() => {
-                    setEditorMode("clip");
-                  }}
+                  hideActionButtons={true}
                   onPreview={() => {}}
-                  onDownloadSource={() => {
-                    setEditorMode("full");
-                  }}
                   freeDownloadBadge={freeDownloadBadge}
                 />
               </div>
-              <div className="md:col-span-3">
+              <div className="lg:col-span-5">
                 <ClipEditor
                   media={media}
                   onExtract={editorMode === "clip" ? handleExtract : handleDownloadSource}
@@ -279,6 +284,8 @@ export default function Landing() {
                   b1tBalance={isDeveloper ? Infinity : (quota?.b1t_balance ?? null)}
                   mode={editorMode}
                   onModeChange={setEditorMode}
+                  freeDownloadUsed={Boolean(quota?.free_download_used)}
+                  onRequireAuth={() => setIsLoginModalOpen(true)}
                 />
               </div>
             </div>
