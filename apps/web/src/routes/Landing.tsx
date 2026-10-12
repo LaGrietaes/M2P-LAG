@@ -155,7 +155,7 @@ export default function Landing() {
   const isExtracting = extractMutation.isPending || downloadMutation.isPending;
 
   return (
-    <div className="relative min-h-screen bg-[#040508] text-white flex flex-col justify-between">
+    <div className="relative min-h-screen lg:h-screen bg-[#040508] text-white flex flex-col justify-between overflow-x-hidden">
       {/* Dynamic CRT ambient background */}
       <AmbientBackground
         thumbnailUrl={media?.thumbnail}
@@ -170,19 +170,19 @@ export default function Landing() {
       />
 
       {/* Progress breadcrumb rail */}
-      <div className="relative z-10 border-b border-border-subtle">
+      <div className="relative z-10 border-b border-border-subtle shrink-0">
         <ProgressRail current={view} orientation="horizontal" onStepClick={handleStepClick} />
       </div>
 
       {/* Main content area */}
-      <main className="relative z-10 w-full max-w-6xl mx-auto px-4 sm:px-8 py-8 pb-16 flex-1">
+      <main className="relative z-10 w-full max-w-6xl mx-auto px-4 sm:px-8 py-3 sm:py-4 lg:py-3 flex-1 flex flex-col justify-center min-h-0 overflow-y-auto">
 
         {/* ─── STAGE: INPUT ─────────────────────────────────────────── */}
         {view === "input" && (
-          <div className="min-h-[calc(100vh-14rem)] flex flex-col items-center justify-center gap-12">
+          <div className="w-full flex-1 flex flex-col items-center justify-center gap-5 sm:gap-6 my-auto py-1">
             {/* Hero */}
             <div className="text-center">
-              <LogoFull className="h-16 sm:h-20 w-auto mx-auto mb-4 drop-shadow-[0_0_20px_rgba(255,0,0,0.15)]" />
+              <LogoFull className="h-12 sm:h-14 lg:h-16 w-auto mx-auto mb-2 drop-shadow-[0_0_20px_rgba(255,0,0,0.15)]" />
               <p className="font-mono text-xs sm:text-sm text-text-secondary tracking-[0.25em] uppercase">
                 Tactical Downloader · Signal Extraction
               </p>
@@ -194,8 +194,8 @@ export default function Landing() {
               <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-accent-bright pointer-events-none" />
               <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-accent-bright pointer-events-none" />
               <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-accent-bright pointer-events-none" />
-              <div className="bg-surface/80 border border-border-subtle p-8 backdrop-blur-xl">
-                <p className="font-mono text-label-caps text-text-secondary tracking-widest mb-6 uppercase">
+              <div className="bg-surface/80 border border-border-subtle p-5 sm:p-6 backdrop-blur-xl">
+                <p className="font-mono text-label-caps text-text-secondary tracking-widest mb-3.5 uppercase">
                   01 // PASTE VIDEO URL
                 </p>
                 <UrlInput onInspectSuccess={handleInspectSuccess} />
@@ -204,12 +204,12 @@ export default function Landing() {
 
             {/* Role info */}
             <div className="w-full max-w-2xl grid grid-cols-2 gap-px bg-border-subtle">
-              <div className="bg-[#040508] px-5 py-4">
-                <p className="font-mono text-label-caps text-accent tracking-widest mb-1">GUEST</p>
+              <div className="bg-[#040508] px-4 sm:px-5 py-2.5 sm:py-3">
+                <p className="font-mono text-label-caps text-accent tracking-widest mb-0.5">GUEST</p>
                 <p className="font-mono text-xs text-text-secondary">20s clip · 1 free full download</p>
               </div>
-              <div className="bg-[#040508] px-5 py-4">
-                <p className="font-mono text-label-caps text-white tracking-widest mb-1">REGISTERED</p>
+              <div className="bg-[#040508] px-4 sm:px-5 py-2.5 sm:py-3">
+                <p className="font-mono text-label-caps text-white tracking-widest mb-0.5">REGISTERED</p>
                 <p className="font-mono text-xs text-text-secondary">Unlimited extraction · gated by B1T$</p>
               </div>
             </div>

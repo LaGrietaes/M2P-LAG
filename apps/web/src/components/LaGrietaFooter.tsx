@@ -96,9 +96,9 @@ export function LaGrietaFooter() {
       <footer
         role="contentinfo"
         aria-label="Información legal y cumplimiento"
-        className="w-full py-6 px-4 mt-auto flex justify-center relative z-20"
+        className="w-full py-2 sm:py-2.5 px-4 mt-auto flex justify-center relative z-20 shrink-0"
       >
-        <div className="flex flex-wrap items-center justify-center gap-3 px-4 py-2 bg-[#040508]/90 border border-white/10 backdrop-blur-md font-mono text-[10px] text-gray-400 tracking-[0.15em] uppercase hover:border-white/20 transition-all shadow-xl max-w-[95vw]">
+        <div className="flex flex-wrap items-center justify-center gap-3 px-4 py-1.5 bg-[#040508]/90 border border-white/10 backdrop-blur-md font-mono text-[10px] text-gray-400 tracking-[0.15em] uppercase hover:border-white/20 transition-all shadow-xl max-w-[95vw]">
           <a
             href={CANONICAL_LEGAL_URLS.BASE}
             target="_blank"
