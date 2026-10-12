@@ -96,18 +96,6 @@ export const VersionResponseSchema = z.object({
 
 export type VersionResponse = z.infer<typeof VersionResponseSchema>;
 
-export const PurchaseRequestSchema = z.object({
-  tier: z.number().int(),
-});
-
-export const PurchaseResponseSchema = z.object({
-  status: z.string(),
-  b1t_credited: z.number().optional().nullable(),
-  message: z.string(),
-});
-
-export type PurchaseRequest = z.infer<typeof PurchaseRequestSchema>;
-export type PurchaseResponse = z.infer<typeof PurchaseResponseSchema>;
 
 export const QuotaResponseSchema = z.object({
   role: z.string(),

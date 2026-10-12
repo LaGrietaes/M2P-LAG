@@ -5,7 +5,6 @@ import type {
   ExtractResponse,
   JobResponse,
   PurchaseRequest,
-  PurchaseResponse,
   QuotaResponse,
   Session,
 } from "../types";
@@ -180,17 +179,6 @@ export async function getQuota(): Promise<QuotaResponse> {
   return response.json();
 }
 
-export async function purchaseB1t(tier: number): Promise<PurchaseResponse> {
-  const request: PurchaseRequest = { tier };
-  const response = await apiFetch("/api/v1/b1t/purchase", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(request),
-  });
-
-  if (!response.ok) return parseErrorOrThrow(response, "Failed to purchase B1T$");
-  return response.json();
-}
 
 export async function loginDirectly(email: string): Promise<{
   status: string;

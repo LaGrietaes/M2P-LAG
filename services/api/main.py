@@ -27,8 +27,6 @@ from models import (
     JobResponse,
     HealthResponse,
     VersionResponse,
-    PurchaseRequest,
-    PurchaseResponse,
 )
 from services.metadata_service import MetadataService, MetadataError
 from services.extraction_service import ExtractionService, ExtractionError
@@ -613,25 +611,10 @@ def download_source(request: InspectRequest, req: Request) -> ExtractResponse:
 
 
 
-@app.post("/api/v1/b1t/purchase", response_model=PurchaseResponse)
-async def purchase_b1t(request: PurchaseRequest) -> PurchaseResponse:
-    """Buy B1T$ credits (spec §4). Stub — real payment integration is out of scope.
-
-    Default config: always returns 501. When M2P_DEV_CREDIT_GRANTS=true, grants
-    the tier's credits so the UI flow is demoable without a payment provider.
-    """
-    if not settings.M2P_DEV_CREDIT_GRANTS:
-        raise HTTPException(
-            status_code=501,
-            detail="B1T$ purchases are not yet available.",
-        )
-
-    amount = settings.B1T_PACKAGE_TIERS.get(request.tier)
-    if amount is None:
-        raise HTTPException(status_code=422, detail="Unknown package tier.")
-
-    return PurchaseResponse(
-        status="granted",
-        b1t_credited=amount,
-        message=f"{amount} B1T$ credited (dev mode).",
+@app.post("/api/v1/b1t/purchase")
+async def purchase_b1t() -> None:
+    """B1T$ are never sold for money (owner decision 2026-10-12): they are earned inside La Grieta."""
+    raise HTTPException(
+        status_code=410,
+        detail="B1T$ cannot be purchased; they are earned in La Grieta.",
     )

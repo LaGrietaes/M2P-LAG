@@ -55,22 +55,6 @@ def test_quota_registered_user_has_no_clip_or_size_cap(tmp_data_dir, monkeypatch
     assert body["max_file_size"] is None
 
 
-def test_purchase_returns_501_by_default(tmp_data_dir, monkeypatch):
-    monkeypatch.setattr(settings, "M2P_DEV_CREDIT_GRANTS", False)
+def test_purchase_is_closed_b1t_are_not_for_sale(tmp_data_dir):
     resp = client.post("/api/v1/b1t/purchase", json={"tier": 1})
-    assert resp.status_code == 501
-
-
-def test_purchase_credits_balance_in_dev_mode(tmp_data_dir, monkeypatch):
-    monkeypatch.setattr(settings, "M2P_DEV_CREDIT_GRANTS", True)
-    resp = client.post("/api/v1/b1t/purchase", json={"tier": 2})
-    assert resp.status_code == 200
-    body = resp.json()
-    assert body["b1t_credited"] == 550
-    assert body["status"] == "granted"
-
-
-def test_purchase_rejects_unknown_tier(tmp_data_dir, monkeypatch):
-    monkeypatch.setattr(settings, "M2P_DEV_CREDIT_GRANTS", True)
-    resp = client.post("/api/v1/b1t/purchase", json={"tier": 99})
-    assert resp.status_code == 422
+    assert resp.status_code == 410

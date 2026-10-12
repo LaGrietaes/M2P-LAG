@@ -4,14 +4,12 @@ import type { QuotaResponse } from "../types";
 
 interface HeaderHUDProps {
   quota: QuotaResponse | null;
-  onOpenBuyModal: () => void;
   onOpenLoginModal: () => void;
   onLogout?: () => void;
 }
 
 export function HeaderHUD({
   quota,
-  onOpenBuyModal,
   onOpenLoginModal,
   onLogout,
 }: HeaderHUDProps) {
@@ -86,14 +84,13 @@ export function HeaderHUD({
           </button>
         )}
 
-        <button
-          onClick={onOpenBuyModal}
-          className="glitch-text-hover relative px-4 py-1.5 text-xs font-mono font-bold tracking-wider uppercase text-white bg-accent border border-accent-bright shadow-[0_0_12px_rgba(160,0,0,0.4)] hover:bg-accent-bright transition-colors"
+        <a
+          href="https://lagrieta.es/"
+          className="px-4 py-1.5 text-xs font-mono font-bold tracking-wider uppercase text-text-secondary hover:text-white border border-white/20 hover:border-accent transition-colors"
+          title="Los B1T$ no se compran: se ganan en La Grieta"
         >
-          <span className="glitch-target">
-            {isDeveloper && isDevModeAvailable ? "BUY B1T$ (0 B1T$)" : "BUY B1T$"}
-          </span>
-        </button>
+          GANAR B1T$
+        </a>
       </div>
     </header>
   );

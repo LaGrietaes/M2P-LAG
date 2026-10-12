@@ -118,19 +118,6 @@ class JobResponse(BaseModel):
     format: Optional[str] = None
 
 
-class PurchaseRequest(BaseModel):
-    """Request body for POST /api/v1/b1t/purchase (spec §4)."""
-
-    tier: int = Field(..., description="Package tier index (1, 2, or 3)")
-
-
-class PurchaseResponse(BaseModel):
-    """Response from POST /api/v1/b1t/purchase (spec §4)."""
-
-    status: str
-    b1t_credited: Optional[int] = None
-    message: str
-
 
 class HealthResponse(BaseModel):
     status: str = "ok"

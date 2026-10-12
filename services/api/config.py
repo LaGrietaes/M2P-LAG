@@ -68,12 +68,6 @@ class Settings:
         "ENABLE_B1T_CREDITS", "false"
     ).lower() in ("1", "true", "yes")
 
-    # ── B1T$ purchase (spec §4) ─────────────────────────────────────────
-    M2P_DEV_CREDIT_GRANTS: bool = os.getenv(
-        "M2P_DEV_CREDIT_GRANTS", "false"
-    ).lower() in ("1", "true", "yes")
-    B1T_PACKAGE_TIERS: dict = {1: 100, 2: 550, 3: 2300}
-
     # ── Dev-mode registered-user bypass (frontend DevModeToggle) ────────
     # Dev/staging only: lets the frontend exercise real registered-user
     # code paths (no clip cap, real B1T$ balance/spend) without a live
