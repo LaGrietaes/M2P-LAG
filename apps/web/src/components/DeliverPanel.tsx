@@ -132,15 +132,13 @@ export function DeliverPanel({
           <Button
             onClick={handleDownload}
             disabled={downloadState === "pending" || remaining === 0}
-            className="w-full py-4 text-lg font-bold shadow-[0_0_20px_rgba(217,4,41,0.3)] glitch-text-hover"
+            className="w-full py-4 text-lg font-bold shadow-[0_0_20px_rgba(217,4,41,0.3)]"
           >
-            <span className="glitch-target">
-              {remaining === 0
-                ? "FILE EXPIRED"
-                : downloadState === "pending"
-                ? "PREPARING…"
-                : "DOWNLOAD FILE"}
-            </span>
+            {remaining === 0
+              ? "FILE EXPIRED"
+              : downloadState === "pending"
+              ? "PREPARING…"
+              : "DOWNLOAD FILE"}
           </Button>
 
           {/* Countdown timer */}

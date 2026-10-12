@@ -108,11 +108,9 @@ export function LoginModal({ isOpen, onClose, onLoggedIn }: LoginModalProps) {
             <button
               type="submit"
               disabled={pending || !email.trim()}
-              className="glitch-text-hover relative px-6 py-2.5 text-xs font-mono font-bold tracking-wider uppercase text-white bg-accent border border-accent-bright shadow-[0_0_12px_rgba(160,0,0,0.4)] hover:bg-accent-bright disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+              className="relative px-6 py-2.5 text-xs font-mono font-bold tracking-wider uppercase text-white bg-accent border border-accent-bright shadow-[0_0_12px_rgba(160,0,0,0.4)] hover:bg-accent-bright disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
             >
-              <span className="glitch-target">
-                {pending ? "CONNECTING…" : "AUTHENTICATE"}
-              </span>
+              {pending ? "CONNECTING…" : "AUTHENTICATE"}
             </button>
           </div>
         </form>

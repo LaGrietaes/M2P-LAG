@@ -169,21 +169,21 @@ export function SourceCard({
         {!hideActionButtons && onExtract && (
           <button
             onClick={onExtract}
-            className="px-4 py-2 text-sm font-mono font-medium text-white bg-accent hover:bg-brand-red-dark transition-colors glitch-text-hover"
+            className="px-4 py-2 text-sm font-mono font-medium text-white bg-accent hover:bg-brand-red-dark transition-colors"
             onMouseEnter={() => setHoverTrim(true)}
             onMouseLeave={() => hoverTrim && setHoverTrim(false)}
           >
-            <span className="glitch-target">{getTrimLabel()}</span>
+            {getTrimLabel()}
           </button>
         )}
         {!hideActionButtons && onDownloadSource && (
           <button
             onClick={onDownloadSource}
-            className="px-4 py-2 text-sm font-mono font-medium text-text-primary bg-transparent border border-border-subtle hover:bg-surface-elevated transition-colors glitch-text-hover"
+            className="px-4 py-2 text-sm font-mono font-medium text-text-primary bg-transparent border border-border-subtle hover:bg-surface-elevated transition-colors"
             onMouseEnter={() => setHoverFull(true)}
             onMouseLeave={() => hoverFull && setHoverFull(false)}
           >
-            <span className="glitch-target">{getFullLabel()}</span>
+            {getFullLabel()}
           </button>
         )}
       </div>

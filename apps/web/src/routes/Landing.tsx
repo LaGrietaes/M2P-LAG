@@ -235,49 +235,8 @@ export default function Landing() {
               </div>
             </div>
 
-            {/* Identity and Role Status Area */}
-            {isUserLoggedIn ? (
-              <div className="w-full max-w-2xl bg-[#080b11] border border-border-strong p-3.5 sm:p-4 relative overflow-hidden">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-8 h-8 bg-accent/20 border border-accent/40 flex items-center justify-center font-mono font-bold text-accent-bright text-xs shrink-0">
-                      LG
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#10b981] animate-pulse shrink-0" />
-                        <span className="font-mono text-[10px] tracking-widest text-[#10b981] uppercase font-bold truncate">
-                          OPERADOR CONECTADO // LAGRIETA.ES
-                        </span>
-                      </div>
-                      <p className="font-mono text-xs sm:text-sm text-white font-bold truncate">
-                        {quota?.name || quota?.email || "OPERADOR REGISTRADO"}
-                      </p>
-                      <p className="font-mono text-[10px] sm:text-[11px] text-text-secondary truncate mt-0.5">
-                        Extracción ilimitada activa · Sin límite de duración en clips
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <div className="px-2.5 sm:px-3 py-1 sm:py-1.5 bg-black/60 border border-border-subtle text-right font-mono">
-                      <span className="text-[9px] text-text-secondary block">SALDO B1T$</span>
-                      <strong className="text-accent-bright font-black text-xs sm:text-sm">
-                        {isDeveloper ? "∞ B1T$ [OVERRIDE]" : `${quota?.b1t_balance ?? 0} B1T$`}
-                      </strong>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setIsB1tInfoOpen(true)}
-                      className="text-text-secondary hover:text-accent-bright transition-colors cursor-pointer p-1 inline-flex items-center"
-                      title="¿Qué son los B1T$?"
-                      aria-label="Información sobre créditos B1T$"
-                    >
-                      <InfoIcon className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ) : (
+            {/* Role info for guest users */}
+            {!isUserLoggedIn && (
               <div className="w-full max-w-2xl grid grid-cols-1 sm:grid-cols-2 gap-px bg-border-subtle">
                 <div className="bg-[#040508] px-4 sm:px-5 py-2.5 sm:py-3 flex flex-col justify-between">
                   <div>

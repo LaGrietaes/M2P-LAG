@@ -131,20 +131,6 @@ body {
     border-right: 2px solid var(--m2p-accent-bright);
   }
 
-  /* ── Pure Text-Only Glitch Hover Animation ───────────────────────── */
-  .glitch-text-hover:hover .glitch-target {
-    animation: textGlitchFlicker 0.25s infinite linear;
-    color: var(--m2p-accent-bright);
-  }
-
-  @keyframes textGlitchFlicker {
-    0% { opacity: 1; letter-spacing: normal; transform: skewX(0deg); }
-    20% { opacity: 0.8; letter-spacing: 0.05em; transform: skewX(-3deg); color: #ff3333; }
-    40% { opacity: 1; letter-spacing: -0.02em; transform: skewX(2deg); }
-    60% { opacity: 0.85; letter-spacing: 0.08em; transform: skewX(-1deg); color: #ffffff; }
-    80% { opacity: 1; letter-spacing: normal; transform: skewX(3deg); }
-    100% { opacity: 1; letter-spacing: normal; transform: skewX(0deg); }
-  }
 
   /* Tactile Range Scrubber */
   input[type="range"].tactile-slider {

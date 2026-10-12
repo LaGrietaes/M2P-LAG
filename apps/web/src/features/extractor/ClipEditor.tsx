@@ -686,11 +686,11 @@ export function ClipEditor({
         <Button
           onClick={handleExtract}
           disabled={isExtracting || (mode === "clip" && selectedDuration <= 0)}
-          className="w-full py-4 text-lg glitch-text-hover"
+          className="w-full py-4 text-lg"
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}
         >
-          <span className="glitch-target">{getButtonLabel()}</span>
+          {getButtonLabel()}
         </Button>
       </div>
     </Panel>
