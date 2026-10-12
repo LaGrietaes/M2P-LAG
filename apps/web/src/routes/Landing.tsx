@@ -14,6 +14,7 @@ import { DeliverPanel } from "../components/DeliverPanel";
 import { HeaderHUD } from "../components/HeaderHUD";
 import { AmbientBackground } from "../components/AmbientBackground";
 import { LaGrietaFooter } from "../components/LaGrietaFooter";
+import { InfoIcon } from "../components/ui/Icons";
 import { useMutation } from "@tanstack/react-query";
 import { extractClip, downloadSource, getQuota, logoutUser } from "../lib/api";
 import { setAuthToken } from "../lib/guestToken";
@@ -48,10 +49,30 @@ export default function Landing() {
       .catch(() => setQuota(null));
   }, [view]);
 
+  const recordDownload = (title: string, filename?: string) => {
+    try {
+      const raw = localStorage.getItem("m2p_download_history");
+      const list = raw ? JSON.parse(raw) : [];
+      const item = {
+        id: Date.now().toString(),
+        title: title || filename || "Media extraction",
+        timestamp: Date.now(),
+        filename: filename || "media",
+      };
+      const updated = [item, ...list.slice(0, 19)];
+      localStorage.setItem("m2p_download_history", JSON.stringify(updated));
+      window.dispatchEvent(new Event("m2p_download_history_updated"));
+    } catch {}
+  };
+
   const extractMutation = useMutation({
     mutationFn: extractClip,
     onSuccess: (data) => {
       setExtractResult(data);
+      recordDownload(
+        media?.title || "Clip extraction",
+        data.format ? `${data.file_id}.${data.format}` : data.file_id,
+      );
       setView("result");
       getQuota().then(setQuota).catch(() => {});
     },
@@ -65,6 +86,10 @@ export default function Landing() {
     mutationFn: downloadSource,
     onSuccess: (data) => {
       setExtractResult(data);
+      recordDownload(
+        media?.title || "Full source download",
+        data.format ? `${data.file_id}.${data.format}` : data.file_id,
+      );
       setView("result");
       getQuota().then(setQuota).catch(() => {});
     },
@@ -243,11 +268,11 @@ export default function Landing() {
                     <button
                       type="button"
                       onClick={() => setIsB1tInfoOpen(true)}
-                      className="w-6 h-6 flex items-center justify-center font-mono text-xs font-bold text-accent-bright bg-accent/20 border border-accent/40 hover:bg-accent hover:text-white transition-colors cursor-pointer"
+                      className="text-text-secondary hover:text-accent-bright transition-colors cursor-pointer p-1 inline-flex items-center"
                       title="¿Qué son los B1T$?"
                       aria-label="Información sobre créditos B1T$"
                     >
-                      ?
+                      <InfoIcon className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
@@ -272,11 +297,11 @@ export default function Landing() {
                       <button
                         type="button"
                         onClick={() => setIsB1tInfoOpen(true)}
-                        className="w-5 h-5 flex items-center justify-center font-mono text-xs font-bold text-accent-bright bg-accent/20 border border-accent/40 hover:bg-accent hover:text-white transition-colors cursor-pointer shrink-0"
+                        className="text-text-secondary hover:text-accent-bright transition-colors cursor-pointer p-0.5 inline-flex items-center shrink-0"
                         title="¿Qué son los B1T$?"
                         aria-label="Información sobre créditos B1T$"
                       >
-                        ?
+                        <InfoIcon className="w-3.5 h-3.5" />
                       </button>
                     </div>
                     <p className="font-mono text-xs text-text-secondary mt-0.5">

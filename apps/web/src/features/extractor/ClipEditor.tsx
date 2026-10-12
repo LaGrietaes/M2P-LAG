@@ -12,6 +12,7 @@ import { Button } from "../../components/ui/Button";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import { FormatTable } from "../../components/ui/FormatTable";
 import { useDevMode } from "../../lib/devMode";
+import { InfoIcon } from "../../components/ui/Icons";
 
 type PrimaryTrack = "video" | "audio";
 type Mode = "clip" | "full";
@@ -289,11 +290,11 @@ export function ClipEditor({
               <button
                 type="button"
                 onClick={onOpenB1tInfo}
-                className="w-4 h-4 flex items-center justify-center font-mono text-[10px] font-bold text-accent-bright bg-accent/20 border border-accent/40 hover:bg-accent hover:text-white transition-colors cursor-pointer"
+                className="text-text-secondary hover:text-accent-bright transition-colors cursor-pointer p-0.5 inline-flex items-center shrink-0"
                 title="¿Qué son los B1T$?"
                 aria-label="Información sobre créditos B1T$"
               >
-                ?
+                <InfoIcon className="w-3.5 h-3.5" />
               </button>
             )}
           </div>
