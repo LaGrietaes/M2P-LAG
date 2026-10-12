@@ -8,6 +8,7 @@ import { isDevModeAvailable } from "../lib/devMode";
 import { useDevMode } from "../lib/devMode";
 import { ProgressRail } from "../components/ProgressRail";
 import { LoginModal } from "../components/LoginModal";
+import { B1tInfoModal } from "../components/B1tInfoModal";
 import { ExtractionProgress } from "../components/ExtractionProgress";
 import { DeliverPanel } from "../components/DeliverPanel";
 import { HeaderHUD } from "../components/HeaderHUD";
@@ -26,10 +27,11 @@ export default function Landing() {
   const [extractResult, setExtractResult] = useState<ExtractResponse | null>(null);
   const [quota, setQuota] = useState<QuotaResponse | null>(null);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isB1tInfoOpen, setIsB1tInfoOpen] = useState(false);
   const [selectedFormatId, setSelectedFormatId] = useState<string | null>(null);
   const [editorMode, setEditorMode] = useState<"clip" | "full">("clip");
 
-  const { isDeveloper } = useDevMode();
+  const { isDeveloper, isRegistered } = useDevMode();
 
   useEffect(() => {
     // 1. Process SSO callback token if present in URL
@@ -152,6 +154,11 @@ export default function Landing() {
     getQuota().then(setQuota).catch(() => {});
   };
 
+  const isUserLoggedIn =
+    quota?.role === "registered" ||
+    quota?.role === "user" ||
+    (isDevModeAvailable && (isDeveloper || isRegistered));
+
   const isExtracting = extractMutation.isPending || downloadMutation.isPending;
 
   return (
@@ -166,6 +173,7 @@ export default function Landing() {
       <HeaderHUD
         quota={quota}
         onOpenLoginModal={() => setIsLoginModalOpen(true)}
+        onOpenB1tInfo={() => setIsB1tInfoOpen(true)}
         onLogout={handleLogout}
       />
 
@@ -202,17 +210,98 @@ export default function Landing() {
               </div>
             </div>
 
-            {/* Role info */}
-            <div className="w-full max-w-2xl grid grid-cols-2 gap-px bg-border-subtle">
-              <div className="bg-[#040508] px-4 sm:px-5 py-2.5 sm:py-3">
-                <p className="font-mono text-label-caps text-accent tracking-widest mb-0.5">GUEST</p>
-                <p className="font-mono text-xs text-text-secondary">20s clip · 1 free full download</p>
+            {/* Identity and Role Status Area */}
+            {isUserLoggedIn ? (
+              <div className="w-full max-w-2xl bg-[#080b11] border border-border-strong p-3.5 sm:p-4 relative overflow-hidden">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-8 h-8 bg-accent/20 border border-accent/40 flex items-center justify-center font-mono font-bold text-accent-bright text-xs shrink-0">
+                      LG
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#10b981] animate-pulse shrink-0" />
+                        <span className="font-mono text-[10px] tracking-widest text-[#10b981] uppercase font-bold truncate">
+                          OPERADOR CONECTADO // LAGRIETA.ES
+                        </span>
+                      </div>
+                      <p className="font-mono text-xs sm:text-sm text-white font-bold truncate">
+                        {quota?.name || quota?.email || "OPERADOR REGISTRADO"}
+                      </p>
+                      <p className="font-mono text-[10px] sm:text-[11px] text-text-secondary truncate mt-0.5">
+                        Extracción ilimitada activa · Sin límite de duración en clips
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <div className="px-2.5 sm:px-3 py-1 sm:py-1.5 bg-black/60 border border-border-subtle text-right font-mono">
+                      <span className="text-[9px] text-text-secondary block">SALDO B1T$</span>
+                      <strong className="text-accent-bright font-black text-xs sm:text-sm">
+                        {isDeveloper ? "∞ B1T$ [OVERRIDE]" : `${quota?.b1t_balance ?? 0} B1T$`}
+                      </strong>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsB1tInfoOpen(true)}
+                      className="w-6 h-6 flex items-center justify-center font-mono text-xs font-bold text-accent-bright bg-accent/20 border border-accent/40 hover:bg-accent hover:text-white transition-colors cursor-pointer"
+                      title="¿Qué son los B1T$?"
+                      aria-label="Información sobre créditos B1T$"
+                    >
+                      ?
+                    </button>
+                  </div>
+                </div>
               </div>
-              <div className="bg-[#040508] px-4 sm:px-5 py-2.5 sm:py-3">
-                <p className="font-mono text-label-caps text-white tracking-widest mb-0.5">REGISTERED</p>
-                <p className="font-mono text-xs text-text-secondary">Unlimited extraction · gated by B1T$</p>
+            ) : (
+              <div className="w-full max-w-2xl grid grid-cols-1 sm:grid-cols-2 gap-px bg-border-subtle">
+                <div className="bg-[#040508] px-4 sm:px-5 py-2.5 sm:py-3 flex flex-col justify-between">
+                  <div>
+                    <p className="font-mono text-label-caps text-accent tracking-widest mb-0.5">GUEST</p>
+                    <p className="font-mono text-xs text-text-secondary">20s clip · 1 free full download</p>
+                  </div>
+                </div>
+                <div className="bg-[#040508] px-4 sm:px-5 py-2.5 sm:py-3 flex flex-col justify-between border-t sm:border-t-0 sm:border-l border-border-subtle">
+                  <div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <p className="font-mono text-label-caps text-white tracking-widest">REGISTERED</p>
+                        <span className="text-[9px] font-mono text-accent-bright bg-accent/20 px-1 py-0.2 border border-accent/40 tracking-wider">
+                          LAGRIETA.ES
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setIsB1tInfoOpen(true)}
+                        className="w-5 h-5 flex items-center justify-center font-mono text-xs font-bold text-accent-bright bg-accent/20 border border-accent/40 hover:bg-accent hover:text-white transition-colors cursor-pointer shrink-0"
+                        title="¿Qué son los B1T$?"
+                        aria-label="Información sobre créditos B1T$"
+                      >
+                        ?
+                      </button>
+                    </div>
+                    <p className="font-mono text-xs text-text-secondary mt-0.5">
+                      Unlimited extraction · gated by B1T$
+                    </p>
+                  </div>
+                  <div className="mt-2 pt-1.5 border-t border-border-subtle/50 flex items-center justify-between text-[11px] font-mono">
+                    <button
+                      type="button"
+                      onClick={() => setIsLoginModalOpen(true)}
+                      className="text-accent-bright hover:underline font-bold tracking-wider inline-flex items-center gap-1 cursor-pointer"
+                    >
+                      <span>ENTRAR CON LAGRIETA →</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsB1tInfoOpen(true)}
+                      className="text-text-secondary hover:text-white transition-colors cursor-pointer"
+                    >
+                      Info B1T$
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         )}
 
@@ -283,6 +372,7 @@ export default function Landing() {
                   onModeChange={setEditorMode}
                   freeDownloadUsed={Boolean(quota?.free_download_used)}
                   onRequireAuth={() => setIsLoginModalOpen(true)}
+                  onOpenB1tInfo={() => setIsB1tInfoOpen(true)}
                 />
               </div>
             </div>
@@ -333,6 +423,13 @@ export default function Landing() {
         onLoggedIn={() => {
           getQuota().then(setQuota).catch(() => {});
         }}
+      />
+
+      {/* B1T$ info modal */}
+      <B1tInfoModal
+        isOpen={isB1tInfoOpen}
+        onClose={() => setIsB1tInfoOpen(false)}
+        onOpenLogin={() => setIsLoginModalOpen(true)}
       />
 
       {/* Persistent LaGrieta footer pill */}

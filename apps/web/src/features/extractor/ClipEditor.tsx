@@ -35,6 +35,7 @@ interface ClipEditorProps {
   onModeChange: (mode: Mode) => void;
   freeDownloadUsed?: boolean;
   onRequireAuth?: () => void;
+  onOpenB1tInfo?: () => void;
 }
 
 function formatTime(seconds: number): string {
@@ -123,6 +124,7 @@ export function ClipEditor({
   onModeChange,
   freeDownloadUsed = false,
   onRequireAuth,
+  onOpenB1tInfo,
 }: ClipEditorProps) {
   const [inPoint, setInPoint] = useState(0);
   const [outPoint, setOutPoint] = useState(0);
@@ -278,11 +280,22 @@ export function ClipEditor({
           <div className="font-mono text-label-caps text-text-secondary uppercase tracking-widest mb-1">
             Identity Status
           </div>
-          <div className="font-mono text-sm text-text-primary">
-            BALANCE:{" "}
+          <div className="font-mono text-sm text-text-primary flex items-center justify-end gap-1.5">
+            <span>BALANCE:</span>
             <span className="font-bold text-accent-bright tracking-tight">
               {balanceText}
             </span>
+            {onOpenB1tInfo && (
+              <button
+                type="button"
+                onClick={onOpenB1tInfo}
+                className="w-4 h-4 flex items-center justify-center font-mono text-[10px] font-bold text-accent-bright bg-accent/20 border border-accent/40 hover:bg-accent hover:text-white transition-colors cursor-pointer"
+                title="¿Qué son los B1T$?"
+                aria-label="Información sobre créditos B1T$"
+              >
+                ?
+              </button>
+            )}
           </div>
         </div>
       </div>

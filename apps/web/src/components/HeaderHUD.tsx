@@ -5,12 +5,14 @@ import type { QuotaResponse } from "../types";
 interface HeaderHUDProps {
   quota: QuotaResponse | null;
   onOpenLoginModal: () => void;
+  onOpenB1tInfo?: () => void;
   onLogout?: () => void;
 }
 
 export function HeaderHUD({
   quota,
   onOpenLoginModal,
+  onOpenB1tInfo,
   onLogout,
 }: HeaderHUDProps) {
   const { isDeveloper, isRegistered } = useDevMode();
@@ -60,12 +62,26 @@ export function HeaderHUD({
 
         {/* Consolidated Identity & Balance Status Capsule */}
         <div className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 sm:py-1.5 bg-surface border border-border-subtle text-text-secondary text-[11px] sm:text-xs">
+          {isUserLoggedIn && (
+            <span className="w-1.5 h-1.5 rounded-full bg-[#10b981] animate-pulse" title="Conectado a La Grieta" />
+          )}
           <span className="hidden sm:inline">ID:</span>
           <strong className={isDeveloper && isDevModeAvailable ? "text-accent-bright font-bold" : isUserLoggedIn ? "text-white font-bold" : "text-text-secondary"}>
             {roleText}
           </strong>
           <span className="text-border-subtle">·</span>
           <strong className="text-accent-bright font-extrabold">{balanceText}</strong>
+          {onOpenB1tInfo && (
+            <button
+              type="button"
+              onClick={onOpenB1tInfo}
+              className="text-[10px] text-text-secondary hover:text-white px-1 ml-0.5 border border-border-subtle/60 hover:border-accent transition-colors cursor-pointer"
+              title="¿Qué son los B1T$?"
+              aria-label="Información sobre créditos B1T$"
+            >
+              ?
+            </button>
+          )}
         </div>
 
         {/* In-app Direct Login Button for Guests */}
