@@ -165,20 +165,16 @@ export function ClipEditor({
   };
 
   const handleExtract = () => {
-    let targetFormat: "mp4" | "mov" | "webm" | "mp3" | "wav" = "mp4";
-    let activePreset: string = videoPreset;
-
-    if (primaryTrack === "audio") {
-      targetFormat = audioPreset === "wav" ? "wav" : "mp3";
-      activePreset = audioPreset;
-    } else {
-      targetFormat = videoPreset === "prores" ? "mov" : "mp4";
-      activePreset = videoPreset;
-    }
+    const targetFormat: "mp4" | "mov" | "webm" | "mp3" | "wav" =
+      primaryTrack === "audio"
+        ? (audioPreset === "wav" ? "wav" : "mp3")
+        : (videoPreset === "prores" ? "mov" : "mp4");
+    const activePreset: string =
+      primaryTrack === "audio" ? audioPreset : videoPreset;
 
     if (mode === "full") {
       if (maxClipSeconds !== null && freeDownloadUsed) {
-        setShowError("You have used your 1 free full download. Please log in or buy B1T$ to continue.");
+        setShowError("You have used your 1 free full download. Please log in to continue.");
         onRequireAuth?.();
         return;
       }
@@ -238,7 +234,7 @@ export function ClipEditor({
         return `DOWNLOAD ${trackLabel} (FREE)`;
       }
       if (freeDownloadUsed) {
-        return `DOWNLOAD FULL FILE (${ext}) (LOGIN / BUY B1T$)`;
+        return `DOWNLOAD FULL FILE (${ext}) (LOG IN TO DOWNLOAD)`;
       }
       return `DOWNLOAD FULL FILE (${ext}) (1 FREE DL)`;
     }

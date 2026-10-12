@@ -82,7 +82,7 @@ class Settings:
     )
 
     # ── Version ─────────────────────────────────────────────────────────
-    VERSION: str = os.getenv("M2P_VERSION", "0.1.0")
+    VERSION: str = os.getenv("M2P_VERSION", "0.2.0-beta")
 
 
 settings = Settings()

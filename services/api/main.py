@@ -520,7 +520,7 @@ def download_source(request: InspectRequest, req: Request) -> ExtractResponse:
         if guest_service.has_used_free_download(guest_token):
             raise HTTPException(
                 status_code=403,
-                detail="Free download already used. Register or buy B1T$ for more downloads.",
+                detail="Free download already used. Register or log in with La Grieta for more downloads.",
             )
         # If this guest already has a job currently processing, reuse it
         for j_id, j_data in _jobs.items():
@@ -611,7 +611,7 @@ def download_source(request: InspectRequest, req: Request) -> ExtractResponse:
 
 
 
-@app.post("/api/v1/b1t/purchase")
+@app.post("/api/v1/b1t/purchase", include_in_schema=False)
 async def purchase_b1t() -> None:
     """B1T$ are never sold for money (owner decision 2026-10-12): they are earned inside La Grieta."""
     raise HTTPException(

@@ -4,7 +4,6 @@ import type {
   ExtractRequest,
   ExtractResponse,
   JobResponse,
-  PurchaseRequest,
   QuotaResponse,
   Session,
 } from "../types";

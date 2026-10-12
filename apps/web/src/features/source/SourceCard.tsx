@@ -147,7 +147,7 @@ export function SourceCard({
         >
           {freeDownloadBadge === "available"
             ? "1 FREE FULL DOWNLOAD AVAILABLE"
-            : "FREE DOWNLOAD USED — Register or buy B1T$ for more"}
+            : "FREE DOWNLOAD USED — Log in with La Grieta for more"}
         </StatusBadge>
       )}
 

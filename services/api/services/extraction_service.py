@@ -199,7 +199,7 @@ class ExtractionService:
                 )
             if self.guests.has_used_free_download(guest_token):
                 raise ExtractionError(
-                    "Free download already used. Register or buy B1T$ for more "
+                    "Free download already used. Register or log in with La Grieta for more "
                     "downloads."
                 )
             is_guest_free_download = True

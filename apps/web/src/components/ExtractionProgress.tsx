@@ -21,7 +21,7 @@ function randomHex(): string {
 
 export function ExtractionProgress({
   isPending,
-  label: _label = "PREPARING MEDIA FILE...",
+  label,
 }: ExtractionProgressProps) {
   const progress = useExtractionProgress(isPending);
   const filled = Math.floor(progress);
@@ -64,7 +64,7 @@ export function ExtractionProgress({
     return { title: "COMPLETING CLEARANCE", task: "DELIVER", speed: 10 };
   }, [filled]);
 
-  const header = isPending ? stageInfo.title : "PREPARATION COMPLETE";
+  const header = isPending ? (label || stageInfo.title) : "PREPARATION COMPLETE";
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">

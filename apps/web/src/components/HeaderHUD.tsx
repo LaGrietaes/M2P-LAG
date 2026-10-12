@@ -38,9 +38,14 @@ export function HeaderHUD({
       {/* Brand Group */}
       <div className="flex items-center gap-3">
         <Logo className="w-7 h-7" />
-        <span className="font-display font-black text-xl tracking-tight text-white">
-          M2P
-        </span>
+        <div className="flex items-baseline gap-2">
+          <span className="font-display font-black text-xl tracking-tight text-white">
+            M2P
+          </span>
+          <span className="px-1.5 py-0.5 text-[9px] font-mono font-bold tracking-widest uppercase bg-accent/20 border border-accent/40 text-accent-bright">
+            OPEN BETA
+          </span>
+        </div>
         <span className="hidden sm:inline-block font-mono text-[10px] tracking-[0.15em] text-text-secondary uppercase border-l border-border-subtle pl-3">
           MEDIA 2 PEER // TACTICAL
         </span>
@@ -83,14 +88,6 @@ export function HeaderHUD({
             LOG OUT
           </button>
         )}
-
-        <a
-          href="https://lagrieta.es/"
-          className="px-4 py-1.5 text-xs font-mono font-bold tracking-wider uppercase text-text-secondary hover:text-white border border-white/20 hover:border-accent transition-colors"
-          title="Los B1T$ no se compran: se ganan en La Grieta"
-        >
-          GANAR B1T$
-        </a>
       </div>
     </header>
   );
