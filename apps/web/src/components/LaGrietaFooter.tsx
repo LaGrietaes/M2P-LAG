@@ -3,13 +3,14 @@
  * Links to canonical single source of truth at lagrieta.es/legal/*
  */
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 
 const CANONICAL_LEGAL_URLS = {
   BASE: 'https://lagrieta.es',
-  AVISO_LEGAL: 'https://lagrieta.es/legal/aviso-legal',
-  PRIVACIDAD: 'https://lagrieta.es/legal/privacidad',
-  TERMINOS: 'https://lagrieta.es/legal/terminos',
-  COOKIES: 'https://lagrieta.es/legal/cookies',
+  AVISO_LEGAL: '/legal/aviso-legal',
+  PRIVACIDAD: '/legal/privacidad',
+  TERMINOS: '/legal/terminos',
+  COOKIES: '/legal/cookies',
 };
 
 const CONSENT_COOKIE_NAME = 'lagrieta_consent';
@@ -119,10 +120,10 @@ export function LaGrietaFooter() {
           <span className="text-white/20 hidden sm:inline">|</span>
 
           <div className="flex items-center gap-2.5 text-[9px] sm:text-[10px]">
-            <a href={CANONICAL_LEGAL_URLS.AVISO_LEGAL} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Aviso Legal</a>
-            <a href={CANONICAL_LEGAL_URLS.PRIVACIDAD} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Privacidad</a>
-            <a href={CANONICAL_LEGAL_URLS.TERMINOS} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Términos</a>
-            <a href={CANONICAL_LEGAL_URLS.COOKIES} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Cookies</a>
+            <Link to={CANONICAL_LEGAL_URLS.AVISO_LEGAL} className="hover:text-white transition-colors">Aviso Legal</Link>
+            <Link to={CANONICAL_LEGAL_URLS.PRIVACIDAD} className="hover:text-white transition-colors">Privacidad</Link>
+            <Link to={CANONICAL_LEGAL_URLS.TERMINOS} className="hover:text-white transition-colors">Términos</Link>
+            <Link to={CANONICAL_LEGAL_URLS.COOKIES} className="hover:text-white transition-colors">Cookies</Link>
             <button
               type="button"
               onClick={() => setShowBanner(true)}
@@ -177,8 +178,8 @@ export function LaGrietaFooter() {
             <div className="flex items-center justify-between text-[9px] text-gray-500 pt-1.5 border-t border-white/5">
               <span>Single Source of Truth</span>
               <div className="flex gap-2">
-                <a href={CANONICAL_LEGAL_URLS.COOKIES} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Cookies</a>
-                <a href={CANONICAL_LEGAL_URLS.PRIVACIDAD} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Privacidad</a>
+                <Link to={CANONICAL_LEGAL_URLS.COOKIES} className="hover:text-white transition-colors">Cookies</Link>
+                <Link to={CANONICAL_LEGAL_URLS.PRIVACIDAD} className="hover:text-white transition-colors">Privacidad</Link>
               </div>
             </div>
           </div>

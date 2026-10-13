@@ -41,7 +41,13 @@ export default defineConfig({
     react(),
     vitePrerender({
       staticDir: path.join(__dirname, 'dist'),
-      routes: ['/'],
+      routes: [
+        '/',
+        '/legal/aviso-legal',
+        '/legal/privacidad',
+        '/legal/terminos',
+        '/legal/cookies',
+      ],
       renderer: new vitePrerender.PuppeteerRenderer({
         renderAfterTime: 1000,
         headless: true,
