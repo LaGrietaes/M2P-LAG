@@ -37,6 +37,7 @@ interface ClipEditorProps {
   freeDownloadUsed?: boolean;
   onRequireAuth?: () => void;
   onOpenB1tInfo?: () => void;
+  // onOpenBoosters?: (tab?: "boosters" | "passes" | "protocol") => void; // Payments disabled until further notice
 }
 
 function formatTime(seconds: number): string {
@@ -126,6 +127,7 @@ export function ClipEditor({
   freeDownloadUsed = false,
   onRequireAuth,
   onOpenB1tInfo,
+  // onOpenBoosters, // Payments disabled until further notice
 }: ClipEditorProps) {
   const [inPoint, setInPoint] = useState(0);
   const [outPoint, setOutPoint] = useState(0);
@@ -297,6 +299,18 @@ export function ClipEditor({
                 <InfoIcon className="w-3.5 h-3.5" />
               </button>
             )}
+            {/* Payments / Boosters disabled until further notice:
+            {onOpenBoosters && (
+              <button
+                type="button"
+                onClick={() => onOpenBoosters("boosters")}
+                className="px-1.5 py-0.5 text-[8px] font-mono font-bold bg-accent/20 hover:bg-accent/40 text-accent-bright border border-accent/40 transition-colors uppercase cursor-pointer shrink-0 ml-1"
+                title="Desbloquear boosters y pases"
+              >
+                + BOOST
+              </button>
+            )}
+            */}
           </div>
         </div>
       </div>
@@ -411,8 +425,21 @@ export function ClipEditor({
             </div>
 
             {maxClipSeconds !== null && selectedDuration > maxClipSeconds && (
-              <div className="text-xs text-accent-error font-mono">
-                (Selection exceeds {maxClipSeconds}s guest limit)
+              <div className="space-y-1.5 pt-1">
+                <div className="text-xs text-accent-error font-mono">
+                  (Selection exceeds {maxClipSeconds}s guest limit)
+                </div>
+                {/* Payments / Boosters disabled until further notice:
+                {onOpenBoosters && (
+                  <button
+                    type="button"
+                    onClick={() => onOpenBoosters("boosters")}
+                    className="w-full py-1.5 px-2 bg-accent/20 hover:bg-accent/30 text-accent-bright border border-accent/40 text-[11px] font-bold tracking-wider flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <span>⚡ DESBLOQUEAR CLIP LARGO (1,00 € / 100 B1T$)</span>
+                  </button>
+                )}
+                */}
               </div>
             )}
           </div>

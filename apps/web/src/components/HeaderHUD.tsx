@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { Logo } from "./Logo";
 import { useDevMode, isDevModeAvailable } from "../lib/devMode";
+import { useTranslation } from "../lib/i18n/I18nContext";
+import { LanguageSelector } from "./LanguageSelector";
 import type { QuotaResponse } from "../types";
 import {
   InfoIcon,
@@ -14,6 +16,7 @@ interface HeaderHUDProps {
   quota: QuotaResponse | null;
   onOpenLoginModal: () => void;
   onOpenB1tInfo?: () => void;
+  // onOpenBoosters?: (tab?: "boosters" | "passes" | "protocol") => void; // Payments disabled until further notice
   onLogout?: () => void;
 }
 
@@ -28,9 +31,11 @@ export function HeaderHUD({
   quota,
   onOpenLoginModal,
   onOpenB1tInfo,
+  // onOpenBoosters, // Payments disabled until further notice
   onLogout,
 }: HeaderHUDProps) {
   const { isDeveloper, isRegistered } = useDevMode();
+  const { t } = useTranslation();
   const [isExpanded, setIsExpanded] = useState(false);
   const [downloads, setDownloads] = useState<DownloadHistoryItem[]>([]);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -125,10 +130,12 @@ export function HeaderHUD({
       </div>
 
       {/* Right HUD Controls */}
-      <div className="flex items-center gap-3 font-mono">
+      <div className="flex items-center gap-2 sm:gap-3 font-mono">
+        {/* Tactical Language Selector */}
+        <LanguageSelector />
         <div className="hidden lg:flex items-center gap-2 px-3 py-1 bg-surface border border-border-subtle text-text-secondary text-xs">
-          <span>SIGNAL:</span>
-          <span className="text-[#10b981] font-bold">LOCKED</span>
+          <span>{t('header.signal')}</span>
+          <span className="text-[#10b981] font-bold">{t('header.locked')}</span>
         </div>
 
         {/* ─── LA GRIETA STYLE USER NAV PILL ─── */}
@@ -243,7 +250,7 @@ export function HeaderHUD({
                     <div className="flex items-center gap-1.5">
                       <span className={`w-1.5 h-1.5 rounded-full ${statusColor} ${isUserLoggedIn ? "animate-pulse" : ""}`} />
                       <span className="font-mono text-[9px] tracking-widest text-[#10b981] uppercase font-bold truncate">
-                        {isUserLoggedIn ? "OPERADOR CONECTADO" : "MODO VISITANTE"}
+                        {isUserLoggedIn ? t('header.operator_connected') : t('header.guest_mode')}
                       </span>
                     </div>
                     <p className="font-mono text-xs sm:text-sm text-white font-bold truncate">
@@ -276,6 +283,22 @@ export function HeaderHUD({
                   <span className="font-mono text-xs font-black text-accent-bright">
                     {balanceText}
                   </span>
+                  {/* Payments / Boosters disabled until further notice:
+                  {onOpenBoosters && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsExpanded(false);
+                        onOpenBoosters("boosters");
+                      }}
+                      className="mt-1 px-1.5 py-0.5 text-[8px] font-mono font-bold bg-accent/20 hover:bg-accent/40 text-accent-bright border border-accent/40 transition-colors uppercase cursor-pointer"
+                      title="Desbloquear boosters de cómputo y pases"
+                    >
+                      + BOOST
+                    </button>
+                  )}
+                  */}
                 </div>
               </div>
 
@@ -284,7 +307,7 @@ export function HeaderHUD({
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-1.5 font-mono text-[10px] tracking-wider text-text-secondary uppercase">
                     <HistoryIcon className="w-3 h-3 text-accent-bright" />
-                    <span>01 // HISTORIAL DE DESCARGAS</span>
+                    <span>{t('header.downloads_title')}</span>
                   </div>
                   {downloads.length > 0 && (
                     <button
@@ -292,7 +315,7 @@ export function HeaderHUD({
                       onClick={clearHistory}
                       className="text-[9px] font-mono text-text-secondary hover:text-accent-error transition-colors cursor-pointer uppercase"
                     >
-                      LIMPIAR
+                      {t('header.clear').toUpperCase()}
                     </button>
                   )}
                 </div>
@@ -335,15 +358,31 @@ export function HeaderHUD({
 
               {/* ── Zone 3: Actions & Quick Links ── */}
               <div className="relative pt-3 flex items-center justify-between text-xs font-mono">
-                <a
-                  href="https://lagrieta.es"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-text-secondary hover:text-white transition-colors inline-flex items-center gap-1 text-[11px] tracking-wider uppercase"
-                >
-                  <span>PORTAL LAGRIETA.ES</span>
-                  <ExternalLinkIcon className="w-2.5 h-2.5" />
-                </a>
+                <div className="flex items-center gap-2">
+                  <a
+                    href="https://lagrieta.es"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-text-secondary hover:text-white transition-colors inline-flex items-center gap-1 text-[11px] tracking-wider uppercase"
+                  >
+                    <span>PORTAL LAGRIETA.ES</span>
+                    <ExternalLinkIcon className="w-2.5 h-2.5" />
+                  </a>
+                  {/* Payments / Boosters disabled until further notice:
+                  {onOpenBoosters && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsExpanded(false);
+                        onOpenBoosters("passes");
+                      }}
+                      className="text-accent-bright hover:underline text-[10px] font-bold tracking-wider uppercase cursor-pointer"
+                    >
+                      ⚡ PASES
+                    </button>
+                  )}
+                  */}
+                </div>
 
                 {isUserLoggedIn ? (
                   onLogout && (
@@ -355,7 +394,7 @@ export function HeaderHUD({
                       }}
                       className="px-2.5 py-1 text-[11px] text-accent-error hover:bg-accent-error/10 border border-transparent hover:border-accent-error/40 transition-colors cursor-pointer uppercase font-bold"
                     >
-                      CERRAR SESIÓN
+                      {t('header.logout')}
                     </button>
                   )
                 ) : (
@@ -367,7 +406,7 @@ export function HeaderHUD({
                     }}
                     className="px-2.5 py-1 text-[11px] text-accent-bright hover:bg-accent/10 border border-accent/40 transition-colors cursor-pointer uppercase font-bold"
                   >
-                    ENTRAR CON LAGRIETA →
+                    {t('header.login_lagrieta')} →
                   </button>
                 )}
               </div>

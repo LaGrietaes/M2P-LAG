@@ -4,6 +4,8 @@
  */
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useTranslation } from '../lib/i18n/I18nContext';
+import { LanguageSelector } from './LanguageSelector';
 
 const CANONICAL_LEGAL_URLS = {
   BASE: 'https://lagrieta.es',
@@ -72,6 +74,7 @@ function writeFederatedConsent(preferences: { analytics: boolean; functional: bo
 }
 
 export function LaGrietaFooter() {
+  const { t } = useTranslation();
   const [showBanner, setShowBanner] = useState(false);
 
   useEffect(() => {
@@ -120,10 +123,10 @@ export function LaGrietaFooter() {
           <span className="text-white/20 hidden sm:inline">|</span>
 
           <div className="flex items-center gap-2.5 text-[9px] sm:text-[10px]">
-            <Link to={CANONICAL_LEGAL_URLS.AVISO_LEGAL} className="hover:text-white transition-colors">Aviso Legal</Link>
-            <Link to={CANONICAL_LEGAL_URLS.PRIVACIDAD} className="hover:text-white transition-colors">Privacidad</Link>
-            <Link to={CANONICAL_LEGAL_URLS.TERMINOS} className="hover:text-white transition-colors">Términos</Link>
-            <Link to={CANONICAL_LEGAL_URLS.COOKIES} className="hover:text-white transition-colors">Cookies</Link>
+            <Link to={CANONICAL_LEGAL_URLS.AVISO_LEGAL} className="hover:text-white transition-colors">{t('footer.aviso_legal')}</Link>
+            <Link to={CANONICAL_LEGAL_URLS.PRIVACIDAD} className="hover:text-white transition-colors">{t('footer.privacidad')}</Link>
+            <Link to={CANONICAL_LEGAL_URLS.TERMINOS} className="hover:text-white transition-colors">{t('footer.terminos')}</Link>
+            <Link to={CANONICAL_LEGAL_URLS.COOKIES} className="hover:text-white transition-colors">{t('footer.cookies')}</Link>
             <button
               type="button"
               onClick={() => setShowBanner(true)}
@@ -132,6 +135,10 @@ export function LaGrietaFooter() {
               [Ajustes]
             </button>
           </div>
+
+          <span className="text-white/20 hidden sm:inline">|</span>
+
+          <LanguageSelector variant="footer" />
         </div>
       </footer>
 
@@ -164,14 +171,14 @@ export function LaGrietaFooter() {
                 onClick={handleAcceptAll}
                 className="flex-1 py-1.5 px-3 bg-red-600 hover:bg-red-500 text-white font-bold text-[10px] tracking-wider uppercase transition-colors cursor-pointer"
               >
-                Aceptar Todas
+                {t('footer.accept_all')}
               </button>
               <button
                 type="button"
                 onClick={handleRejectOptional}
                 className="flex-1 py-1.5 px-3 bg-white/10 hover:bg-white/20 text-gray-300 font-bold text-[10px] tracking-wider uppercase transition-colors cursor-pointer border border-white/10"
               >
-                Solo Necesarias
+                {t('footer.reject_optional')}
               </button>
             </div>
 

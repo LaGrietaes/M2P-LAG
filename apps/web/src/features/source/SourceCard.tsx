@@ -7,6 +7,7 @@ import { Panel } from "../../components/ui/Panel";
 import { StatusBadge } from "../../components/ui/StatusBadge";
 import type { InspectResponse } from "../../types";
 import { useDevMode } from "../../lib/devMode";
+import { useTranslation } from "../../lib/i18n/I18nContext";
 
 interface SourceCardProps {
   media: InspectResponse;
@@ -36,25 +37,26 @@ export function SourceCard({
   hideActionButtons = false,
 }: SourceCardProps) {
   const { isDeveloper } = useDevMode();
+  const { t } = useTranslation();
   const [hoverTrim, setHoverTrim] = useState(false);
   const [hoverFull, setHoverFull] = useState(false);
   const [isPlayingPreview, setIsPlayingPreview] = useState(false);
 
   const getTrimLabel = () => {
     if (isDeveloper && hoverTrim) {
-      return "TRIM SELECTION (0 B1T$ [DEV])";
+      return t('source_card.trim_dev');
     }
-    return "TRIM / CUSTOM CLIP";
+    return t('source_card.trim_custom');
   };
 
   const getFullLabel = () => {
     if (freeDownloadBadge === "available") {
-      return "DOWNLOAD FULL FILE (FREE)";
+      return t('source_card.download_full_free');
     }
     if (isDeveloper && hoverFull) {
-      return "DOWNLOAD FULL FILE (0 B1T$ [DEV])";
+      return t('source_card.download_full_dev');
     }
-    return "DOWNLOAD FULL FILE";
+    return t('source_card.download_full');
   };
 
   const isYoutube =
@@ -78,10 +80,10 @@ export function SourceCard({
             <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-accent opacity-50"></div>
             <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-accent opacity-50"></div>
             <div className="absolute top-2 left-2 font-mono text-[10px] font-bold tracking-widest text-accent bg-background/80 px-2 py-1">
-              REC // LIVE
+              {t('source_card.rec_live')}
             </div>
             <div className="absolute bottom-2 right-2 font-mono text-[10px] tracking-widest text-text-secondary bg-background/80 px-2 py-1">
-              Duration: {formatDuration(media.duration)}
+              {t('source_card.duration')} {formatDuration(media.duration)}
             </div>
           </div>
         )}

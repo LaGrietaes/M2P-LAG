@@ -1,3 +1,5 @@
+import { useTranslation } from "../lib/i18n/I18nContext";
+
 type ViewState = "input" | "source" | "configure" | "extracting" | "result";
 
 interface ProgressRailProps {
@@ -6,19 +8,20 @@ interface ProgressRailProps {
   orientation?: "horizontal" | "vertical";
 }
 
-const STEPS: { view: ViewState; label: string }[] = [
-  { view: "input", label: "ENTER URL" },
-  { view: "source", label: "PREVIEW" },
-  { view: "configure", label: "OPTIONS" },
-  { view: "extracting", label: "PROCESSING" },
-  { view: "result", label: "DOWNLOAD" },
-];
-
 export function ProgressRail({
   current,
   onStepClick,
   orientation = "horizontal",
 }: ProgressRailProps) {
+  const { t } = useTranslation();
+
+  const STEPS: { view: ViewState; label: string }[] = [
+    { view: "input", label: t('rail.step_input') },
+    { view: "source", label: t('rail.step_source') },
+    { view: "configure", label: t('rail.step_configure') },
+    { view: "extracting", label: t('rail.step_extracting') },
+    { view: "result", label: t('rail.step_result') },
+  ];
   const currentIndex = STEPS.findIndex((s) => s.view === current);
 
   if (orientation === "vertical") {

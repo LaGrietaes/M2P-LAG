@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { Panel } from "./ui/Panel";
 import { Button } from "./ui/Button";
 import { downloadFile } from "../lib/api";
+import { useTranslation } from "../lib/i18n/I18nContext";
 import type { ExtractResponse, InspectResponse } from "../types";
 
 interface DeliverPanelProps {
@@ -16,6 +17,7 @@ interface DeliverPanelProps {
   thumbnailUrl?: string | null;
   creator?: string | null;
   duration?: number | null;
+  // onOpenBoosters?: (tab?: "boosters" | "passes" | "protocol") => void; // Payments disabled until further notice
 }
 
 function formatDuration(seconds: number | null | undefined): string {
@@ -43,7 +45,9 @@ export function DeliverPanel({
   thumbnailUrl,
   creator,
   duration,
+  // onOpenBoosters, // Payments disabled until further notice
 }: DeliverPanelProps) {
+  const { t } = useTranslation();
   const [isPlayingPreview, setIsPlayingPreview] = useState(false);
   const [remaining, setRemaining] = useState<number | null>(() => {
     if (typeof extractResult.expires_at !== "number") return null;
@@ -120,7 +124,7 @@ export function DeliverPanel({
 
         <div className="flex flex-col items-center gap-2 mb-6">
           <h2 className="font-display font-black text-2xl md:text-3xl text-text-primary uppercase tracking-tight">
-            YOUR DOWNLOAD IS READY
+            {t('deliver.ready_title')}
           </h2>
           <p className="font-mono text-xs text-text-secondary uppercase tracking-widest">
             Media extraction complete. Save file directly to device.
@@ -137,23 +141,37 @@ export function DeliverPanel({
             {remaining === 0
               ? "FILE EXPIRED"
               : downloadState === "pending"
-              ? "PREPARING…"
-              : "DOWNLOAD FILE"}
+              ? t('deliver.downloading')
+              : t('deliver.download_cta')}
           </Button>
 
           {/* Countdown timer */}
           {remaining !== null && (
-            <div className="flex items-center justify-center gap-3 px-4 py-2 bg-[#040508]/80 border border-border-subtle text-xs">
-              <span className="font-mono text-text-secondary">
-                {remaining > 0 ? "FILE AVAILABLE FOR:" : "FILE STATUS:"}
-              </span>
-              <span
-                className={`font-mono text-sm tabular-nums font-bold ${
-                  remaining > 0 ? "text-accent-bright" : "text-accent-error"
-                }`}
-              >
-                {remaining > 0 ? formatRemaining(remaining) : "EXPIRED (PURGED)"}
-              </span>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
+              <div className="flex items-center justify-center gap-3 px-4 py-2 bg-[#040508]/80 border border-border-subtle text-xs">
+                <span className="font-mono text-text-secondary">
+                  {remaining > 0 ? "FILE AVAILABLE FOR:" : "FILE STATUS:"}
+                </span>
+                <span
+                  className={`font-mono text-sm tabular-nums font-bold ${
+                    remaining > 0 ? "text-accent-bright" : "text-accent-error"
+                  }`}
+                >
+                  {remaining > 0 ? formatRemaining(remaining) : "EXPIRED (PURGED)"}
+                </span>
+              </div>
+              {/* Payments / Boosters disabled until further notice:
+              {onOpenBoosters && remaining > 0 && (
+                <button
+                  type="button"
+                  onClick={() => onOpenBoosters("boosters")}
+                  className="px-3 py-2 bg-accent/20 hover:bg-accent/30 text-accent-bright border border-accent/40 font-mono text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5"
+                  title="Ampliar tiempo de disponibilidad del archivo durante 3 horas más"
+                >
+                  <span>⚡ +3H PRÓRROGA (1,00 € / 100 B1T$)</span>
+                </button>
+              )}
+              */}
             </div>
           )}
         </div>
@@ -274,7 +292,7 @@ export function DeliverPanel({
                 onClick={handleCopyLink}
                 className="px-4 py-1.5 text-xs border border-accent bg-accent/10 text-accent hover:bg-accent/25 transition-colors font-bold uppercase"
               >
-                {copied ? "Copied!" : "Copy"}
+                {copied ? t('deliver.link_copied') : t('deliver.copy_link')}
               </button>
             </div>
           </div>
@@ -292,7 +310,7 @@ export function DeliverPanel({
         onClick={onRestart}
         className="font-mono text-label-caps text-text-secondary hover:text-text-primary uppercase tracking-[0.2em] transition-colors"
       >
-        {"\u2190"} START NEW DOWNLOAD
+        {t('deliver.restart')}
       </button>
     </div>
   );

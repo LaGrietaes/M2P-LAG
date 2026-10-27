@@ -3,10 +3,13 @@ import { Link, useParams, useNavigate } from "react-router-dom";
 import { Logo } from "../components/Logo";
 import { LaGrietaFooter } from "../components/LaGrietaFooter";
 import { AmbientBackground } from "../components/AmbientBackground";
+import { useTranslation } from "../lib/i18n/I18nContext";
+import { LanguageSelector } from "../components/LanguageSelector";
 
 export type LegalDocType = "aviso-legal" | "privacidad" | "terminos" | "cookies";
 
 export default function Legal() {
+  const { t } = useTranslation();
   const { slug } = useParams<{ slug?: string }>();
   const navigate = useNavigate();
 
@@ -57,16 +60,19 @@ export default function Legal() {
             </div>
           </Link>
           <span className="hidden sm:inline-block font-mono text-[10px] tracking-[0.15em] text-text-secondary uppercase border-l border-border-subtle pl-3">
-            MARCO LEGAL & CUMPLIMIENTO
+            {t('legal.compliance_tag')}
           </span>
         </div>
 
-        <Link
-          to="/"
-          className="font-mono text-xs font-bold uppercase tracking-wider text-text-secondary hover:text-white px-3 py-1.5 border border-border-subtle hover:border-accent transition-colors flex items-center gap-1.5"
-        >
-          <span>← VOLVER A M2P</span>
-        </Link>
+        <div className="flex items-center gap-3">
+          <LanguageSelector />
+          <Link
+            to="/"
+            className="font-mono text-xs font-bold uppercase tracking-wider text-text-secondary hover:text-white px-3 py-1.5 border border-border-subtle hover:border-accent transition-colors flex items-center gap-1.5"
+          >
+            <span>{t('legal.back_to_m2p')}</span>
+          </Link>
+        </div>
       </header>
 
       {/* Main Content */}

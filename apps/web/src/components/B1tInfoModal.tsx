@@ -2,6 +2,8 @@
  * B1tInfoModal — Tactical explanation modal for the B1T$ credit ecosystem in La Grieta & M2P.
  */
 
+import { useTranslation } from "../lib/i18n/I18nContext";
+
 interface B1tInfoModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -9,6 +11,7 @@ interface B1tInfoModalProps {
 }
 
 export function B1tInfoModal({ isOpen, onClose, onOpenLogin }: B1tInfoModalProps) {
+  const { t } = useTranslation();
   if (!isOpen) return null;
 
   return (
@@ -29,12 +32,12 @@ export function B1tInfoModal({ isOpen, onClose, onOpenLogin }: B1tInfoModalProps
         <div className="flex items-center justify-between px-6 py-4 border-b border-border-subtle bg-surface/60">
           <div>
             <p className="font-mono text-label-caps text-accent-bright tracking-widest mb-0.5">
-              ECOSYSTEM PROTOCOL // FUEL
+              {t('b1t_modal.protocol_tag')}
             </p>
             <h2 className="font-display font-black text-xl text-white tracking-tight flex items-center gap-2">
-              <span>¿QUÉ SON LOS B1T$?</span>
+              <span>{t('b1t_modal.title')}</span>
               <span className="text-[10px] font-mono px-2 py-0.5 bg-accent/20 border border-accent/40 text-accent-bright font-bold">
-                NO FIAT
+                {t('b1t_modal.no_fiat')}
               </span>
             </h2>
           </div>
@@ -51,16 +54,14 @@ export function B1tInfoModal({ isOpen, onClose, onOpenLogin }: B1tInfoModalProps
         <div className="p-6 space-y-4 max-h-[75vh] overflow-y-auto font-mono text-xs">
           {/* Summary highlight */}
           <div className="p-3.5 bg-accent/10 border-l-2 border-accent text-gray-200 leading-relaxed">
-            <strong className="text-white">Los B1T$ no se compran con dinero.</strong> Son la energía
-            interna de la red <strong className="text-white">La Grieta</strong>. Se ganan
-            participando y aportando valor dentro de la comunidad.
+            {t('b1t_modal.highlight')}
           </div>
 
           {/* Section: How to earn */}
           <div className="space-y-1.5 border border-border-subtle p-3.5 bg-[#080b11]">
             <div className="flex items-center gap-2 text-white font-bold text-label-caps tracking-wider">
               <span className="w-1.5 h-1.5 bg-accent-bright" />
-              <span>¿CÓMO CONSEGUIR B1T$?</span>
+              <span>{t('b1t_modal.how_to_earn')}</span>
             </div>
             <p className="text-text-secondary leading-relaxed">
               Leyendo, participando, compartiendo y completando retos dentro de la plataforma principal en{" "}

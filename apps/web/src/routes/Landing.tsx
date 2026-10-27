@@ -6,9 +6,11 @@ import { ClipEditor } from "../features/extractor/ClipEditor";
 import { DevModeToggle } from "../components/DevModeToggle";
 import { isDevModeAvailable } from "../lib/devMode";
 import { useDevMode } from "../lib/devMode";
+import { useTranslation } from "../lib/i18n/I18nContext";
 import { ProgressRail } from "../components/ProgressRail";
 import { LoginModal } from "../components/LoginModal";
 import { B1tInfoModal } from "../components/B1tInfoModal";
+// import { BoosterCheckoutModal } from "../components/BoosterCheckoutModal"; // Payments disabled until further notice
 import { ExtractionProgress } from "../components/ExtractionProgress";
 import { DeliverPanel } from "../components/DeliverPanel";
 import { HeaderHUD } from "../components/HeaderHUD";
@@ -29,10 +31,18 @@ export default function Landing() {
   const [quota, setQuota] = useState<QuotaResponse | null>(null);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isB1tInfoOpen, setIsB1tInfoOpen] = useState(false);
+  // Payments / Boosters disabled until further notice:
+  // const [isBoosterModalOpen, setIsBoosterModalOpen] = useState(false);
+  // const [boosterTab, setBoosterTab] = useState<"boosters" | "passes" | "protocol">("boosters");
+  // const handleOpenBoosters = (tab: "boosters" | "passes" | "protocol" = "boosters") => {
+  //   setBoosterTab(tab);
+  //   setIsBoosterModalOpen(true);
+  // };
   const [selectedFormatId, setSelectedFormatId] = useState<string | null>(null);
   const [editorMode, setEditorMode] = useState<"clip" | "full">("clip");
 
   const { isDeveloper, isRegistered } = useDevMode();
+  const { t } = useTranslation();
 
   useEffect(() => {
     // 1. Process SSO callback token if present in URL
@@ -199,6 +209,7 @@ export default function Landing() {
         quota={quota}
         onOpenLoginModal={() => setIsLoginModalOpen(true)}
         onOpenB1tInfo={() => setIsB1tInfoOpen(true)}
+        // onOpenBoosters={handleOpenBoosters} // Payments disabled until further notice
         onLogout={handleLogout}
       />
 
@@ -217,7 +228,7 @@ export default function Landing() {
             <div className="text-center">
               <LogoFull className="h-12 sm:h-14 lg:h-16 w-auto mx-auto mb-2 drop-shadow-[0_0_20px_rgba(255,0,0,0.15)]" />
               <p className="font-mono text-xs sm:text-sm text-text-secondary tracking-[0.25em] uppercase">
-                Tactical Downloader · Signal Extraction
+                {t('landing.subtitle')}
               </p>
             </div>
 
@@ -229,7 +240,7 @@ export default function Landing() {
               <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-accent-bright pointer-events-none" />
               <div className="bg-surface/80 border border-border-subtle p-5 sm:p-6 backdrop-blur-xl">
                 <p className="font-mono text-label-caps text-text-secondary tracking-widest mb-3.5 uppercase">
-                  01 // PASTE VIDEO URL
+                  {t('landing.paste_url_label')}
                 </p>
                 <UrlInput onInspectSuccess={handleInspectSuccess} />
               </div>
@@ -241,8 +252,19 @@ export default function Landing() {
                 <div className="bg-[#040508] px-4 sm:px-5 py-2.5 sm:py-3 flex flex-col justify-between">
                   <div>
                     <p className="font-mono text-label-caps text-accent tracking-widest mb-0.5">GUEST</p>
-                    <p className="font-mono text-xs text-text-secondary">20s clip · 1 free full download</p>
+                    <p className="font-mono text-xs text-text-secondary">{t('landing.guest_desc')}</p>
                   </div>
+                  {/* Payments / Boosters disabled until further notice:
+                  <div className="mt-2 pt-1.5 border-t border-border-subtle/50 flex items-center justify-between text-[11px] font-mono">
+                    <button
+                      type="button"
+                      onClick={() => handleOpenBoosters("boosters")}
+                      className="text-accent-bright hover:underline font-bold tracking-wider inline-flex items-center gap-1 cursor-pointer"
+                    >
+                      <span>⚡ BOOSTERS Y PASES →</span>
+                    </button>
+                  </div>
+                  */}
                 </div>
                 <div className="bg-[#040508] px-4 sm:px-5 py-2.5 sm:py-3 flex flex-col justify-between border-t sm:border-t-0 sm:border-l border-border-subtle">
                   <div>
@@ -257,14 +279,14 @@ export default function Landing() {
                         type="button"
                         onClick={() => setIsB1tInfoOpen(true)}
                         className="text-text-secondary hover:text-accent-bright transition-colors cursor-pointer p-0.5 inline-flex items-center shrink-0"
-                        title="¿Qué son los B1T$?"
+                        title={t('landing.info_bit_tooltip')}
                         aria-label="Información sobre créditos B1T$"
                       >
                         <InfoIcon className="w-3.5 h-3.5" />
                       </button>
                     </div>
                     <p className="font-mono text-xs text-text-secondary mt-0.5">
-                      Unlimited extraction · gated by B1T$
+                      {t('landing.registered_desc')}
                     </p>
                   </div>
                   <div className="mt-2 pt-1.5 border-t border-border-subtle/50 flex items-center justify-between text-[11px] font-mono">
@@ -273,14 +295,14 @@ export default function Landing() {
                       onClick={() => setIsLoginModalOpen(true)}
                       className="text-accent-bright hover:underline font-bold tracking-wider inline-flex items-center gap-1 cursor-pointer"
                     >
-                      <span>ENTRAR CON LAGRIETA →</span>
+                      <span>{t('landing.login_cta')}</span>
                     </button>
                     <button
                       type="button"
                       onClick={() => setIsB1tInfoOpen(true)}
                       className="text-text-secondary hover:text-white transition-colors cursor-pointer"
                     >
-                      Info B1T$
+                      {t('landing.info_bit_btn')}
                     </button>
                   </div>
                 </div>
@@ -296,7 +318,7 @@ export default function Landing() {
               onClick={handleBackToInput}
               className="font-mono text-xs text-text-secondary hover:text-white tracking-wider uppercase transition-colors"
             >
-              ← ENTER ANOTHER URL
+              {t('landing.back_to_url')}
             </button>
             <SourceCard
               media={media}
@@ -315,7 +337,7 @@ export default function Landing() {
               <div className="p-3 text-sm font-mono text-accent-error bg-accent-error/10 border border-accent-error/40">
                 {downloadMutation.error instanceof Error
                   ? downloadMutation.error.message
-                  : "Download failed. Please try again."}
+                  : t('landing.download_failed')}
               </div>
             )}
           </div>
@@ -328,7 +350,7 @@ export default function Landing() {
               onClick={handleBackToSource}
               className="font-mono text-xs text-text-secondary hover:text-white tracking-wider uppercase transition-colors"
             >
-              ← BACK TO PREVIEW
+              {t('landing.back_to_preview')}
             </button>
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
               <div className="lg:col-span-7">
@@ -357,6 +379,7 @@ export default function Landing() {
                   freeDownloadUsed={Boolean(quota?.free_download_used)}
                   onRequireAuth={() => setIsLoginModalOpen(true)}
                   onOpenB1tInfo={() => setIsB1tInfoOpen(true)}
+                  // onOpenBoosters={handleOpenBoosters} // Payments disabled until further notice
                 />
               </div>
             </div>
@@ -364,14 +387,14 @@ export default function Landing() {
               <div className="p-3 text-sm font-mono text-accent-error bg-accent-error/10 border border-accent-error/40">
                 {extractMutation.error instanceof Error
                   ? extractMutation.error.message
-                  : "Download preparation failed. Please try again."}
+                  : t('landing.download_prep_failed')}
               </div>
             )}
             {downloadMutation.isError && (
               <div className="p-3 text-sm font-mono text-accent-error bg-accent-error/10 border border-accent-error/40">
                 {downloadMutation.error instanceof Error
                   ? downloadMutation.error.message
-                  : "Download failed. Please try again."}
+                  : t('landing.download_failed')}
               </div>
             )}
 
@@ -393,6 +416,7 @@ export default function Landing() {
             thumbnailUrl={media?.thumbnail}
             creator={media?.creator}
             duration={media?.duration}
+            // onOpenBoosters={handleOpenBoosters} // Payments disabled until further notice
           />
         )}
       </main>
@@ -415,6 +439,19 @@ export default function Landing() {
         onClose={() => setIsB1tInfoOpen(false)}
         onOpenLogin={() => setIsLoginModalOpen(true)}
       />
+
+      {/* Payments / Boosters disabled until further notice:
+      <BoosterCheckoutModal
+        isOpen={isBoosterModalOpen}
+        onClose={() => setIsBoosterModalOpen(false)}
+        onSuccess={() => {
+          getQuota().then(setQuota).catch(() => {});
+        }}
+        quota={quota}
+        initialTab={boosterTab}
+        targetJobId={extractResult?.file_id}
+      />
+      */}
 
       {/* Persistent LaGrieta footer pill */}
       <LaGrietaFooter />

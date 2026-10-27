@@ -3,12 +3,14 @@ import { useMutation } from '@tanstack/react-query'
 import { inspectMedia } from '../lib/api'
 import type { InspectResponse } from '../types'
 import { Button } from './ui/Button'
+import { useTranslation } from '../lib/i18n/I18nContext'
 
 interface UrlInputProps {
   onInspectSuccess?: (data: InspectResponse) => void
 }
 
 export function UrlInput({ onInspectSuccess }: UrlInputProps) {
+  const { t } = useTranslation()
   const [url, setUrl] = useState('')
 
   const mutation = useMutation({
@@ -38,7 +40,7 @@ export function UrlInput({ onInspectSuccess }: UrlInputProps) {
       <div className="scanline-input relative">
         <input
           type="text"
-          placeholder="Paste media URL here (e.g. YouTube, Vimeo, Twitch...)"
+          placeholder={t('url_input.placeholder')}
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           disabled={mutation.isPending}
@@ -51,23 +53,23 @@ export function UrlInput({ onInspectSuccess }: UrlInputProps) {
         disabled={mutation.isPending || !url.trim()}
         className="w-full py-3.5 text-base sm:text-lg font-bold tracking-wider"
       >
-        {mutation.isPending ? 'ANALYZING SOURCE…' : 'ANALYZE URL'}
+        {mutation.isPending ? t('url_input.button_analyzing') : t('url_input.button_analyze')}
       </Button>
 
       {mutation.isPending && (
         <div className="flex items-center justify-center gap-2 py-2 text-xs font-mono text-accent-bright animate-pulse">
           <span className="inline-block w-2 h-2 bg-accent rounded-full animate-ping" />
-          EXTRACTING METADATA AND SOURCE FORMATS...
+          {t('url_input.extracting_meta')}
         </div>
       )}
 
       {mutation.isError && (
         <div className="p-3.5 text-xs sm:text-sm font-mono text-accent-error bg-accent-error/10 border border-accent-error/40 space-y-1">
-          <p className="font-bold uppercase tracking-wider">Analysis Failed</p>
+          <p className="font-bold uppercase tracking-wider">{t('url_input.analysis_failed')}</p>
           <p>
             {mutation.error instanceof Error
               ? mutation.error.message
-              : 'Could not extract metadata from this URL. Please check the link and try again.'}
+              : t('url_input.analysis_error_desc')}
           </p>
         </div>
       )}

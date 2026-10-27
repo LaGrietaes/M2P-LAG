@@ -4,6 +4,7 @@
 
 import { useState } from "react";
 import { loginDirectly } from "../lib/api";
+import { useTranslation } from "../lib/i18n/I18nContext";
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -12,6 +13,7 @@ interface LoginModalProps {
 }
 
 export function LoginModal({ isOpen, onClose, onLoggedIn }: LoginModalProps) {
+  const { t } = useTranslation();
   const [email, setEmail] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -22,7 +24,7 @@ export function LoginModal({ isOpen, onClose, onLoggedIn }: LoginModalProps) {
     e.preventDefault();
     const cleanEmail = email.trim().toLowerCase();
     if (!cleanEmail || !cleanEmail.includes("@")) {
-      setError("Please enter a valid member email.");
+      setError(t('login_modal.err_invalid_email'));
       return;
     }
 
@@ -34,7 +36,7 @@ export function LoginModal({ isOpen, onClose, onLoggedIn }: LoginModalProps) {
       onLoggedIn();
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Authentication failed.");
+      setError(err instanceof Error ? err.message : t('login_modal.err_failed'));
     } finally {
       setPending(false);
     }
@@ -53,10 +55,10 @@ export function LoginModal({ isOpen, onClose, onLoggedIn }: LoginModalProps) {
         <div className="flex items-center justify-between px-6 py-4 border-b border-border-subtle bg-surface/40">
           <div>
             <p className="font-mono text-label-caps text-text-secondary tracking-widest mb-0.5">
-              SECURITY PROTOCOL // AUTH
+              {t('login_modal.protocol_tag')}
             </p>
             <h2 className="font-display font-black text-xl text-white tracking-tight">
-              MEMBER LOGIN
+              {t('login_modal.title')}
             </h2>
           </div>
           <button
@@ -103,14 +105,14 @@ export function LoginModal({ isOpen, onClose, onLoggedIn }: LoginModalProps) {
               disabled={pending}
               className="px-4 py-2 text-xs font-mono tracking-wider uppercase text-text-secondary hover:text-white transition-colors cursor-pointer"
             >
-              CANCEL
+              {t('login_modal.btn_cancel').toUpperCase()}
             </button>
             <button
               type="submit"
               disabled={pending || !email.trim()}
               className="relative px-6 py-2.5 text-xs font-mono font-bold tracking-wider uppercase text-white bg-accent border border-accent-bright shadow-[0_0_12px_rgba(160,0,0,0.4)] hover:bg-accent-bright disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
             >
-              {pending ? "CONNECTING…" : "AUTHENTICATE"}
+              {pending ? t('login_modal.btn_pending') : t('login_modal.btn_login')}
             </button>
           </div>
         </form>
